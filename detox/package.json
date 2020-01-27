@@ -50,6 +50,7 @@
     "lodash": "^4.17.5",
     "minimist": "^1.2.0",
     "proper-lockfile": "^3.0.2",
+    "puppeteer": "^2.1.0",
     "sanitize-filename": "^1.6.1",
     "shell-utils": "^1.0.9",
     "tail": "^2.0.0",

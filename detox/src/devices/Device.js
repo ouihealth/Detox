@@ -28,7 +28,7 @@ class Device {
     }
 
     if (params.launchApp) {
-      await this.launchApp({newInstance: true});
+      await this.launchApp({ newInstance: true });
     }
   }
 
@@ -40,7 +40,7 @@ class Device {
     params[launchKey] = payloadFilePath;
   }
 
-  async launchApp(params = {newInstance: false}, bundleId) {
+  async launchApp(params = { newInstance: false }, bundleId) {
     const payloadParams = ['url', 'userNotification', 'userActivity'];
     const hasPayload = this._assertHasSingleParam(payloadParams, params);
 
@@ -52,7 +52,7 @@ class Device {
     }
 
     const baseLaunchArgs = {
-      ...params.launchArgs,
+      ...params.launchArgs
     };
 
     if (params.url) {
@@ -77,21 +77,26 @@ class Device {
     const _bundleId = bundleId || this._bundleId;
     if (this._isAppInBackground(params, _bundleId)) {
       if (hasPayload) {
-        await this.deviceDriver.deliverPayload({...params, delayPayload: true});
+        await this.deviceDriver.deliverPayload({ ...params, delayPayload: true });
       }
     }
 
-    const processId = await this.deviceDriver.launchApp(this._deviceId, _bundleId, this._prepareLaunchArgs(baseLaunchArgs), params.languageAndLocale);
+    const processId = await this.deviceDriver.launchApp(
+      this._deviceId,
+      _bundleId,
+      this._prepareLaunchArgs(baseLaunchArgs),
+      params.languageAndLocale
+    );
     this._processes[_bundleId] = processId;
 
     await this.deviceDriver.waitUntilReady();
     await this.deviceDriver.waitForActive();
 
-    if(params.detoxUserNotificationDataURL) {
+    if (params.detoxUserNotificationDataURL) {
       await this.deviceDriver.cleanupRandomDirectory(params.detoxUserNotificationDataURL);
     }
 
-    if(params.detoxUserActivityDataURL) {
+    if (params.detoxUserActivityDataURL) {
       await this.deviceDriver.cleanupRandomDirectory(params.detoxUserActivityDataURL);
     }
   }
@@ -120,14 +125,14 @@ class Device {
     let paramsCounter = 0;
 
     singleParams.forEach((item) => {
-      if(params[item]) {
+      if (params[item]) {
         paramsCounter += 1;
       }
     });
     if (paramsCounter > 1) {
       throw new Error(`Call to 'launchApp(${JSON.stringify(params)})' must contain only one of ${JSON.stringify(singleParams)}.`);
     }
-    return (paramsCounter === 1);
+    return paramsCounter === 1;
   }
 
   /**deprecated */
@@ -194,7 +199,9 @@ class Device {
 
   async openURL(params) {
     if (typeof params !== 'object' || !params.url) {
-      throw new Error(`openURL must be called with JSON params, and a value for 'url' key must be provided. example: await device.openURL({url: "url", sourceApp[optional]: "sourceAppBundleID"}`);
+      throw new Error(
+        `openURL must be called with JSON params, and a value for 'url' key must be provided. example: await device.openURL({url: "url", sourceApp[optional]: "sourceAppBundleID"}`
+      );
     }
 
     await this.deviceDriver.deliverPayload(params);
@@ -284,8 +291,8 @@ class Device {
 
   _defaultLaunchArgs() {
     return {
-      'detoxServer': this._sessionConfig.server,
-      'detoxSessionId': this._sessionConfig.sessionId
+      detoxServer: this._sessionConfig.server,
+      detoxSessionId: this._sessionConfig.sessionId
     };
   }
 

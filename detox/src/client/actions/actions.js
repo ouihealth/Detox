@@ -15,6 +15,20 @@ class Action {
   }
 }
 
+class LoginTestee extends Action {
+  constructor(sessionId) {
+    const params = {
+      sessionId: sessionId,
+      role: 'testee'
+    };
+    super('login', params);
+  }
+
+  async handle(response) {
+    this.expectResponseOfType(response, 'loginSuccess');
+  }
+}
+
 class Login extends Action {
   constructor(sessionId) {
     const params = {
@@ -163,6 +177,7 @@ class AppWillTerminateWithError extends Action {
 
 module.exports = {
   Login,
+  LoginTestee,
   WaitForBackground,
   WaitForActive,
   Ready,

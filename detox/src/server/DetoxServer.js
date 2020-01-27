@@ -6,6 +6,10 @@ const CLOSE_TIMEOUT = 10000;
 const ROLE_TESTER = 'tester';
 const ROLE_TESTEE = 'testee';
 
+function debug(label, ...args) {
+  console.log(`DetoxServer.${label}`, ...args);
+}
+
 class DetoxServer {
   constructor({ port, log, standalone = false }) {
     this.wss = new WebSocketServer({ port });
@@ -23,6 +27,7 @@ class DetoxServer {
       ws.on('message', (str) => {
         try {
           const action = JSON.parse(str);
+          debug('message', { action, sessionId, role });
           if (!action.type) {
             return;
           }
@@ -68,10 +73,12 @@ class DetoxServer {
   }
 
   sendAction(ws, action) {
+    debug('sendAction', { action });
     ws.send(JSON.stringify(action) + '\n ');
   }
 
   sendToOtherRole(sessionId, role, action) {
+    debug('sendToOtherRole', { sessionId, role, action });
     const otherRole = role === ROLE_TESTEE ? ROLE_TESTER : ROLE_TESTEE;
     const ws = _.get(this.sessions, [sessionId, otherRole]);
     if (ws && ws.readyState === WebSocket.OPEN) {
@@ -82,7 +89,7 @@ class DetoxServer {
       if (role === ROLE_TESTER && action.type === 'cleanup') {
         this.sendToOtherRole(sessionId, otherRole, {
           type: 'testeeDisconnected',
-          messageId: action.messageId,
+          messageId: action.messageId
         });
       }
     }

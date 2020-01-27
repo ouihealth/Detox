@@ -45,7 +45,7 @@ class Client {
   async cleanup() {
     clearTimeout(this.slowInvocationStatusHandler);
     if (this.isConnected && !this.pandingAppCrash) {
-      if(this.ws.isOpen()) {
+      if (this.ws.isOpen()) {
         await this.sendAction(new actions.Cleanup(this.successfulTestRun));
       }
       this.isConnected = false;
@@ -65,9 +65,11 @@ class Client {
   }
 
   async startInstrumentsRecording({ recordingPath }) {
-    await this.sendAction(new actions.SetInstrumentsRecordingState({
-      recordingPath
-    }));
+    await this.sendAction(
+      new actions.SetInstrumentsRecordingState({
+        recordingPath
+      })
+    );
   }
 
   async stopInstrumentsRecording() {
@@ -138,10 +140,10 @@ class Client {
     }, this.slowInvocationTimeout);
   }
 
-  dumpPendingRequests({testName} = {}) {
+  dumpPendingRequests({ testName } = {}) {
     const messages = _.values(this.ws.inFlightPromises)
-      .map(p => p.message)
-      .filter(m => m.type !== 'currentStatus');
+      .map((p) => p.message)
+      .filter((m) => m.type !== 'currentStatus');
 
     if (_.isEmpty(messages)) {
       return;
@@ -158,7 +160,7 @@ class Client {
 
     dump += `\n\n${notice}\n`;
 
-    log.warn({ event: 'PENDING_REQUESTS'}, dump);
+    log.warn({ event: 'PENDING_REQUESTS' }, dump);
     this.ws.resetInFlightPromises();
   }
 }
