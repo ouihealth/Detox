@@ -11,11 +11,11 @@ const ExistsMatcher = matchers.ExistsMatcher;
 const NotExistsMatcher = matchers.NotExistsMatcher;
 const TextMatcher = matchers.TextMatcher;
 const ValueMatcher = matchers.ValueMatcher;
-const GreyActions = require('./earlgreyapi/GREYActions');
-const GreyInteraction = require('./earlgreyapi/GREYInteraction');
-const GreyCondition = require('./earlgreyapi/GREYCondition');
-const GreyConditionDetox = require('./earlgreyapi/GREYConditionDetox');
-const GreyActionsDetox = require('./earlgreyapi/GREYActions+Detox');
+const GreyActions = require('../ios/earlgreyapi/GREYActions');
+const GreyInteraction = require('../ios/earlgreyapi/GREYInteraction');
+const GreyCondition = require('../ios/earlgreyapi/GREYCondition');
+const GreyConditionDetox = require('../ios/earlgreyapi/GREYConditionDetox');
+const GreyActionsDetox = require('../ios/earlgreyapi/GREYActions+Detox');
 
 function callThunk(element) {
   return typeof element._call === 'function' ? element._call() : element._call;
@@ -43,7 +43,7 @@ detox.invoke.execute(_getInteraction2);
 
 */
 
-class Action { }
+class Action {}
 
 class TapAction extends Action {
   constructor() {
@@ -117,7 +117,14 @@ class ClearTextAction extends Action {
 class ScrollAmountAction extends Action {
   constructor(direction, amount, startScrollX = NaN, startScrollY = NaN) {
     super();
-    this._call = invoke.callDirectly(GreyActions.actionForScrollInDirectionAmountXOriginStartPercentageYOriginStartPercentage(direction, amount, startScrollX, startScrollY));
+    this._call = invoke.callDirectly(
+      GreyActions.actionForScrollInDirectionAmountXOriginStartPercentageYOriginStartPercentage(
+        direction,
+        amount,
+        startScrollX,
+        startScrollY
+      )
+    );
   }
 }
 
@@ -139,17 +146,17 @@ class SwipeAction extends Action {
       let x, y;
       const eps = 10 ** -8;
       switch (direction) {
-        case "left":
-          x = percentage, y = eps;
+        case 'left':
+          (x = percentage), (y = eps);
           break;
-        case "right":
-          x = percentage, y = eps;
+        case 'right':
+          (x = percentage), (y = eps);
           break;
-        case "up":
-          y = percentage, x = eps;
+        case 'up':
+          (y = percentage), (x = eps);
           break;
-        case "down":
-          y = percentage, x = eps;
+        case 'down':
+          (y = percentage), (x = eps);
           break;
       }
 
@@ -177,7 +184,7 @@ class SwipeAction extends Action {
 }
 
 class ScrollColumnToValue extends Action {
-  constructor(column,value) {
+  constructor(column, value) {
     super();
     this._call = invoke.callDirectly(GreyActions.actionForSetPickerColumnToValue(column, value));
   }
@@ -212,6 +219,20 @@ class ActionInteraction extends Interaction {
 class MatcherAssertionInteraction extends Interaction {
   constructor(invocationManager, element, matcher) {
     super(invocationManager);
+    console.log(element, matcher);
+
+    //         {
+    //                 target: {
+    //                           type: 'Invocation',
+    //                             value: {
+    //                                         target: [Object],
+    //                                           method: 'detox_selectElementWithMatcher:',
+    //                                           args: [Array]
+    //                                       }
+    //                         },
+    //                   method: 'assertWithMatcher:',
+    //                   args: [ { type: 'Invocation', value: [Object] } ]
+    //               }
     this._call = GreyInteraction.assertWithMatcher(invoke.callDirectly(callThunk(element)), callThunk(matcher));
   }
 }
@@ -254,14 +275,19 @@ class WaitForActionInteraction extends Interaction {
     super(invocationManager);
     //if (!(element instanceof Element)) throw new Error(`WaitForActionInteraction ctor 1st argument must be a valid Element, got ${typeof element}`);
     //if (!(matcher instanceof Matcher)) throw new Error(`WaitForActionInteraction ctor 2nd argument must be a valid Matcher, got ${typeof matcher}`);
-    if (!(searchMatcher instanceof Matcher)) throw new Error(`WaitForActionInteraction ctor 3rd argument must be a valid Matcher, got ${typeof searchMatcher}`);
+    if (!(searchMatcher instanceof Matcher))
+      throw new Error(`WaitForActionInteraction ctor 3rd argument must be a valid Matcher, got ${typeof searchMatcher}`);
     this._element = element;
     this._originalMatcher = matcher;
     this._searchMatcher = searchMatcher;
   }
 
   async _execute(searchAction) {
-    const _interactionCall = GreyInteraction.usingSearchActionOnElementWithMatcher(invoke.callDirectly(callThunk(this._element)), callThunk(searchAction), callThunk(this._searchMatcher));
+    const _interactionCall = GreyInteraction.usingSearchActionOnElementWithMatcher(
+      invoke.callDirectly(callThunk(this._element)),
+      callThunk(searchAction),
+      callThunk(this._searchMatcher)
+    );
 
     this._call = GreyInteraction.assertWithMatcher(invoke.callDirectly(_interactionCall), callThunk(this._originalMatcher));
     await this.execute();
@@ -280,9 +306,17 @@ class Element {
     this._selectElementWithMatcher(this._originalMatcher);
   }
   _selectElementWithMatcher(matcher) {
-    if (!(matcher instanceof Matcher)) throw new Error(`Element _selectElementWithMatcher argument must be a valid Matcher, got ${typeof matcher}`);
-    this._call = invoke.call(invoke.EarlGrey.instance, 'detox_selectElementWithMatcher:', matcher._call);
-    if(this._atIndex !== undefined) {
+    if (!(matcher instanceof Matcher))
+      throw new Error(`Element _selectElementWithMatcher argument must be a valid Matcher, got ${typeof matcher}`);
+    this._call = invoke.call(
+      {
+        type: 'this',
+        value: 'this'
+      },
+      'getElementHandle',
+      matcher._call
+    );
+    if (this._atIndex !== undefined) {
       this.atIndex(this._atIndex);
     }
   }
@@ -326,7 +360,11 @@ class Element {
   async scroll(amount, direction = 'down', startScrollX, startScrollY) {
     // override the user's element selection with an extended matcher that looks for UIScrollView children
     this._selectElementWithMatcher(this._originalMatcher._extendToDescendantScrollViews());
-    return await new ActionInteraction(this._invocationManager, this, new ScrollAmountAction(direction, amount, startScrollX, startScrollY)).execute();
+    return await new ActionInteraction(
+      this._invocationManager,
+      this,
+      new ScrollAmountAction(direction, amount, startScrollX, startScrollY)
+    ).execute();
   }
   async scrollTo(edge) {
     // override the user's element selection with an extended matcher that looks for UIScrollView children
@@ -338,7 +376,7 @@ class Element {
     this._selectElementWithMatcher(this._originalMatcher._avoidProblematicReactNativeElements());
     return await new ActionInteraction(this._invocationManager, this, new SwipeAction(direction, speed, percentage)).execute();
   }
-  async setColumnToValue(column,value) {
+  async setColumnToValue(column, value) {
     // override the user's element selection with an extended matcher that supports RN's date picker
     this._selectElementWithMatcher(this._originalMatcher._extendPickerViewMatching());
     return await new ActionInteraction(this._invocationManager, this, new ScrollColumnToValue(column, value)).execute();
@@ -420,7 +458,7 @@ class WaitForElement extends WaitFor {
   }
 }
 
-class IosExpect {
+class WebExpect {
   constructor(invocationManager) {
     this._invocationManager = invocationManager;
 
@@ -454,4 +492,4 @@ class IosExpect {
   }
 }
 
-module.exports = IosExpect;
+module.exports = WebExpect;

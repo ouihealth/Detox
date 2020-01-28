@@ -32,8 +32,70 @@ class PuppeteerTestee {
     this.client = new Client(this.configuration);
   }
 
+  async getElementHandle(...args) {
+    console.log('getElementHandle', args);
+    return await page.waitForSelector(...args);
+  }
+
+  async assertWithMatcher(...args) {
+    console.log('assertWithMatcher', args);
+    const result = await args[0][args[1].method]();
+    if (!result) throw new Error('assertion failed');
+    return result;
+  }
+
+  async invoke(params) {
+    console.log({ params });
+    const promises = params.args.map((arg) => {
+      if (arg.type === 'Invocation') {
+        return this.invoke(arg.value);
+      } else if (arg.type === 'matcher') {
+        return arg.selector;
+      }
+    });
+
+    const args = await Promise.all(promises);
+    console.log('call', params, args);
+    if (params.target === 'this' || params.target.type === 'this') {
+      const result = await this[params.method](...args);
+      console.log('result', params.method, result);
+      return result;
+    }
+
+    return params;
+  }
+
   async connect() {
+    // this.client.ws.on('error', (e) => {
+    //   console.error(e);
+    // });
+
+    // this.client.ws.on('close', () => {
+    //   console.log('close');
+    // });
+
     await this.client.ws.open();
+    this.client.ws.ws.on('message', async (str) => {
+      try {
+        const action = JSON.parse(str);
+        console.log('PuppeteerTestee.message', JSON.stringify(action, null, 2));
+        if (!action.type) {
+          return;
+        }
+        if (action.type === 'loginSuccess') return;
+        console.log('waitForSelector', action);
+        try {
+          await this.invoke(action.params);
+        } catch (e) {
+          browser.close();
+          console.error(e);
+        }
+        this.client.ws.ws.send(JSON.stringify({ type: 'invokeResult', messageId: action.messageId }));
+      } catch (err) {
+        console.error(err);
+      }
+    });
+
     await this.client.sendAction(new LoginTestee(this.configuration.sessionId));
   }
 }
@@ -95,10 +157,6 @@ class PuppeteerDriver extends DeviceDriverBase {
     await this.client.execute(call);
   }
 
-  validateDeviceConfig(config) {
-    //no validation
-  }
-
   getPlatform() {
     return 'web';
   }
@@ -113,6 +171,7 @@ class PuppeteerDriver extends DeviceDriverBase {
 
   async cleanup(deviceId, bundleId) {
     debug('TODO cleanup', { deviceId, bundleId });
+    if (browser) browser.close();
     // await this.deviceRegistry.disposeDevice(deviceId);
     await super.cleanup(deviceId, bundleId);
   }
@@ -164,6 +223,7 @@ class PuppeteerDriver extends DeviceDriverBase {
   async uninstallApp(deviceId, bundleId) {
     debug('uninstallApp', { deviceId, bundleId });
     await this.emitter.emit('beforeUninstallApp', { deviceId, bundleId });
+    if (browser) browser.close();
     // await this.applesimutils.uninstall(deviceId, bundleId);
   }
 
@@ -171,6 +231,10 @@ class PuppeteerDriver extends DeviceDriverBase {
     debug('launchApp', { deviceId, bundleId, launchArgs, languageAndLocale });
     await this.emitter.emit('beforeLaunchApp', { bundleId, deviceId, launchArgs });
     browser = await puppeteer.launch({ headless: false });
+    if (launchArgs.detoxURLOverride) {
+      page = (await browser.pages())[0];
+      await page.goto(launchArgs.detoxURLOverride);
+    }
     // const pid = await this.applesimutils.launch(deviceId, bundleId, launchArgs, languageAndLocale);
     const pid = 'PID';
     await this.emitter.emit('launchApp', { bundleId, deviceId, launchArgs, pid });
@@ -181,6 +245,7 @@ class PuppeteerDriver extends DeviceDriverBase {
   async terminate(deviceId, bundleId) {
     debug('terminate', { deviceId, bundleId });
     await this.emitter.emit('beforeTerminateApp', { deviceId, bundleId });
+    if (browser) browser.close();
     // await this.applesimutils.terminate(deviceId, bundleId);
     await this.emitter.emit('terminateApp', { deviceId, bundleId });
   }
@@ -234,7 +299,9 @@ class PuppeteerDriver extends DeviceDriverBase {
   }
 
   validateDeviceConfig(deviceConfig) {
-    if (!deviceConfig.binaryPath) {
+    debug('validateDeviceConfig', deviceConfig);
+    if (!deviceConfig.baseUrl) {
+      console.error('PuppeteerDriver requires baseUrl to be set in detox config');
       configuration.throwOnEmptyBinaryPath();
     }
   }

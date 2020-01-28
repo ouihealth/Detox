@@ -70,17 +70,13 @@ class Detox {
     this._artifactsManager.subscribeToDeviceEvents(deviceDriver);
     this._artifactsManager.registerArtifactPlugins(deviceDriver.declareArtifactPlugins());
 
-    debug('pre device');
-
     const device = new Device({
       deviceConfig: this._deviceConfig,
       deviceDriver,
       sessionConfig
     });
 
-    debug('pre device prepare');
     await device.prepare(params);
-    debug('post device prepare');
 
     const globalsToExport = {
       ...deviceDriver.matchers,

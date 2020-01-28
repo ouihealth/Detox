@@ -1,6 +1,6 @@
 const invoke = require('../invoke');
-const GreyMatchers = require('./earlgreyapi/GREYMatchers');
-const GreyMatchersDetox = require('./earlgreyapi/GREYMatchers+Detox');
+const GreyMatchers = require('../ios/earlgreyapi/GREYMatchers');
+const GreyMatchersDetox = require('../ios/earlgreyapi/GREYMatchers+Detox');
 
 class Matcher {
   withAncestor(matcher) {
@@ -33,11 +33,6 @@ class Matcher {
     this._call = invoke.callDirectly(GreyMatchersDetox.detoxMatcherForScrollChildOfMatcher(_originalMatcherCall));
     return this;
   }
-  _extendToDescendantScrollViews() {
-    const _originalMatcherCall = this._call;
-    this._call = invoke.callDirectly(GreyMatchersDetox.detoxMatcherForScrollChildOfMatcher(_originalMatcherCall));
-    return this;
-  }
   _extendPickerViewMatching() {
     const _originalMatcherCall = this._call;
     this._call = invoke.callDirectly(GreyMatchersDetox.detoxMatcherForPickerViewChildOfMatcher(_originalMatcherCall));
@@ -55,7 +50,10 @@ class LabelMatcher extends Matcher {
 class IdMatcher extends Matcher {
   constructor(value) {
     super();
-    this._call = invoke.callDirectly(GreyMatchers.matcherForAccessibilityID(value));
+    this._call = {
+      type: 'matcher',
+      selector: `[data-testid="${value}"]`
+    };
   }
 }
 
@@ -76,14 +74,28 @@ class TraitsMatcher extends Matcher {
 class VisibleMatcher extends Matcher {
   constructor() {
     super();
-    this._call = invoke.callDirectly(GreyMatchers.matcherForSufficientlyVisible());
+    this._call = invoke.callDirectly({
+      target: {
+        type: 'Class',
+        value: 'GREYMatchers'
+      },
+      method: 'isIntersectingViewport',
+      args: []
+    });
   }
 }
 
 class NotVisibleMatcher extends Matcher {
   constructor() {
     super();
-    this._call = invoke.callDirectly(GreyMatchers.matcherForNotVisible());
+    this._call = invoke.callDirectly({
+      target: {
+        type: 'Class',
+        value: 'GREYMatchers'
+      },
+      method: 'isIntersectingViewport',
+      args: []
+    });
   }
 }
 

@@ -4,7 +4,6 @@ const log = require('../utils/logger').child({ __filename, class: 'AsyncWebSocke
 const WebSocket = require('ws');
 
 class AsyncWebSocket {
-
   constructor(url) {
     this.log = log.child({ url });
     this.url = url;
@@ -15,7 +14,7 @@ class AsyncWebSocket {
   }
 
   async open() {
-    return new Promise(async(resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       this.ws = new WebSocket(this.url);
       this.ws.onopen = (response) => {
         this.log.debug({ event: 'WEBSOCKET_OPEN' }, `opened web socket to: ${this.url}`);
@@ -48,7 +47,7 @@ class AsyncWebSocket {
         }
       };
 
-      this.inFlightPromises[this.messageIdCounter] = {resolve, reject};
+      this.inFlightPromises[this.messageIdCounter] = { resolve, reject };
     });
   }
 
@@ -57,9 +56,9 @@ class AsyncWebSocket {
       throw new Error(`Can't send a message on a closed websocket, init the by calling 'open()'. Message:  ${JSON.stringify(message)}`);
     }
 
-    return new Promise(async(resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       message.messageId = messageId || this.messageIdCounter++;
-      this.inFlightPromises[message.messageId] = {message, resolve, reject};
+      this.inFlightPromises[message.messageId] = { message, resolve, reject };
       const messageAsString = JSON.stringify(message);
       this.log.trace({ event: 'WEBSOCKET_SEND' }, `${messageAsString}`);
       this.ws.send(messageAsString);

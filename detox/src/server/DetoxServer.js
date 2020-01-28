@@ -7,6 +7,7 @@ const ROLE_TESTER = 'tester';
 const ROLE_TESTEE = 'testee';
 
 function debug(label, ...args) {
+  return;
   console.log(`DetoxServer.${label}`, ...args);
 }
 
