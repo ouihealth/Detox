@@ -31,7 +31,7 @@ function debug(label, ...args) {
   console.log(`PuppeteerDriver.${label}`, ...args);
 }
 
-let browser, page;
+let browser, page, urlBlacklist;
 class PuppeteerTestee {
   constructor(config) {
     console.log('PuppeteerTestee.constructor', config);
@@ -106,7 +106,6 @@ class PuppeteerTestee {
       return arg;
     });
 
-    logLevel('propmises', promises);
     const args = await Promise.all(promises);
     logLevel('call', params, args);
     if (params.target === 'this' || params.target.type === 'this') {
@@ -115,7 +114,6 @@ class PuppeteerTestee {
       return result;
     }
 
-    logLevel('return params', params);
     return params;
   }
 
@@ -130,6 +128,38 @@ class PuppeteerTestee {
 
     await this.client.ws.open();
     this.client.ws.ws.on('message', async (str) => {
+      let actionComplete = false;
+      const inflightRequests = {};
+
+      const networkSettledPromise = new Promise((resolve) => {
+        function addInflightRequest(request) {
+          console.log(request.url());
+          inflightRequests[request.uid] = true;
+        }
+
+        function removeInflightRequest(request) {
+          delete inflightRequests[request.uid];
+          if (actionComplete && Object.keys(inflightRequests).length === 0) resolve();
+        }
+
+        page.on('request', (request) => {
+          request.uid = Math.random();
+          const url = request.url();
+          const isIgnored = urlBlacklist.some((candidate) => {
+            return url.match(new RegExp(candidate));
+          });
+          if (!isIgnored) {
+            addInflightRequest(request);
+          }
+        });
+        page.on('requestfinished', (request) => {
+          removeInflightRequest(request);
+        });
+        page.on('requestfailed', (request) => {
+          removeInflightRequest(request);
+        });
+      });
+
       try {
         const action = JSON.parse(str);
         console.log('PuppeteerTestee.message', JSON.stringify(action, null, 2));
@@ -145,7 +175,13 @@ class PuppeteerTestee {
           console.error(e);
           browser.close();
         }
-        this.client.ws.ws.send(JSON.stringify({ type: 'invokeResult', messageId: action.messageId }));
+
+        // End state
+        actionComplete = true;
+        const sendResponsePromise = Object.keys(inflightRequests).length === 0 ? Promise.resolve() : networkSettledPromise;
+        sendResponsePromise.then(() => {
+          this.client.ws.ws.send(JSON.stringify({ type: 'invokeResult', messageId: action.messageId }));
+        });
       } catch (err) {
         console.error(err);
       }
@@ -185,7 +221,8 @@ class PuppeteerDriver extends DeviceDriverBase {
   }
 
   async setURLBlacklist(urlList) {
-    debug('TODO setURLBlacklist');
+    debug('TODO setURLBlacklist should go through client', urlList);
+    urlBlacklist = urlList;
     // await this.client.execute(
     //   GREYConfigurationApi.setValueForConfigKey(
     //     invoke.callDirectly(GREYConfigurationApi.sharedInstance()),
