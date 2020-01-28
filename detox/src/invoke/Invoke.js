@@ -1,5 +1,7 @@
 function call(target, method, ...args) {
+  console.log('call', target, method);
   return function() {
+    console.log('calling');
     if (typeof target === 'function') {
       target = {
         type: 'Invocation',
@@ -29,7 +31,8 @@ function callDirectly(json) {
   };
 }
 
-const genericInvokeObject = new Proxy({},
+const genericInvokeObject = new Proxy(
+  {},
   {
     get: (target, prop) => {
       return (p) => {
@@ -39,7 +42,8 @@ const genericInvokeObject = new Proxy({},
         };
       };
     }
-  });
+  }
+);
 
 module.exports = {
   call,

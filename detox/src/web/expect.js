@@ -48,7 +48,14 @@ class Action {}
 class TapAction extends Action {
   constructor() {
     super();
-    this._call = invoke.callDirectly(GreyActions.actionForTap());
+    this._call = {
+      target: {
+        type: 'action',
+        value: 'action'
+      },
+      method: 'tap',
+      args: []
+    };
   }
 }
 
@@ -103,7 +110,14 @@ class TypeTextAction extends Action {
 class ReplaceTextAction extends Action {
   constructor(value) {
     super();
-    this._call = invoke.callDirectly(GreyActions.actionForReplaceText(value));
+    this._call = {
+      target: {
+        type: 'action',
+        value: 'action'
+      },
+      method: 'replaceText',
+      args: [value]
+    };
   }
 }
 
@@ -203,6 +217,7 @@ class Interaction {
   }
 
   async execute() {
+    console.log('Execute interaction', JSON.stringify(this._call, null, 2));
     //if (!this._call) throw new Error(`Interaction.execute cannot find a valid _call, got ${typeof this._call}`);
     await this._invocationManager.execute(this._call);
   }
@@ -212,7 +227,15 @@ class ActionInteraction extends Interaction {
   constructor(invocationManager, element, action) {
     super(invocationManager);
 
-    this._call = GreyInteraction.performAction(invoke.callDirectly(callThunk(element)), callThunk(action));
+    // this._call = GreyInteraction.performAction(invoke.callDirectly(callThunk(element)), callThunk(action));
+    this._call = {
+      target: {
+        type: 'this',
+        value: 'this'
+      },
+      method: 'performAction',
+      args: [invoke.callDirectly(callThunk(element)), callThunk(action)]
+    };
   }
 }
 
@@ -221,19 +244,11 @@ class MatcherAssertionInteraction extends Interaction {
     super(invocationManager);
     console.log(element, matcher);
 
-    //         {
-    //                 target: {
-    //                           type: 'Invocation',
-    //                             value: {
-    //                                         target: [Object],
-    //                                           method: 'detox_selectElementWithMatcher:',
-    //                                           args: [Array]
-    //                                       }
-    //                         },
-    //                   method: 'assertWithMatcher:',
-    //                   args: [ { type: 'Invocation', value: [Object] } ]
-    //               }
-    this._call = GreyInteraction.assertWithMatcher(invoke.callDirectly(callThunk(element)), callThunk(matcher));
+    this._call = {
+      target: 'this',
+      method: 'assertWithMatcher',
+      args: [invoke.callDirectly(callThunk(element)), callThunk(matcher)]
+    };
   }
 }
 
@@ -245,7 +260,7 @@ class WaitForInteraction extends Interaction {
     this._element = element;
     this._originalMatcher = matcher;
     // we need to override the original matcher for the element and add matcher to it as well
-    this._element._selectElementWithMatcher(this._element._originalMatcher.and(this._originalMatcher));
+    this._element._selectElementWithMatcher(this._element._originalMatcher, this._originalMatcher);
   }
   _not() {
     this._notCondition = true;
@@ -256,13 +271,25 @@ class WaitForInteraction extends Interaction {
     if (timeout < 0) throw new Error('timeout must be larger than 0');
 
     let _conditionCall;
-    if (!this._notCondition) {
-      _conditionCall = GreyConditionDetox.detoxConditionForElementMatched(callThunk(this._element));
-    } else {
-      _conditionCall = GreyConditionDetox.detoxConditionForNotElementMatched(callThunk(this._element));
-    }
+    // if (!this._notCondition) {
+    //   _conditionCall = GreyConditionDetox.detoxConditionForElementMatched(callThunk(this._element));
+    // } else {
+    //   _conditionCall = GreyConditionDetox.detoxConditionForNotElementMatched(callThunk(this._element));
+    // }
 
-    this._call = GreyCondition.waitWithTimeout(invoke.callDirectly(_conditionCall), timeout / 1000);
+    const call = callThunk(this._element);
+    call.args.push({
+      target: {
+        type: 'matcher',
+        value: 'matcher'
+      },
+      method: 'option',
+      args: [{ timeout }]
+    });
+    this._call = call;
+    // console.log(callThunk(this._element));
+    // console.trace(this._element);
+    // this._call = GreyCondition.waitWithTimeout(invoke.callDirectly(_conditionCall), timeout / 1000);
     await this.execute();
   }
   whileElement(searchMatcher) {
@@ -305,16 +332,17 @@ class Element {
     this._originalMatcher = matcher;
     this._selectElementWithMatcher(this._originalMatcher);
   }
-  _selectElementWithMatcher(matcher) {
-    if (!(matcher instanceof Matcher))
-      throw new Error(`Element _selectElementWithMatcher argument must be a valid Matcher, got ${typeof matcher}`);
+  _selectElementWithMatcher(...matchers) {
+    // if (!(matcher instanceof Matcher))
+    //   throw new Error(`Element _selectElementWithMatcher argument must be a valid Matcher, got ${typeof matcher}`);
+    matchers = Array.isArray(matchers) ? matchers : [matchers];
     this._call = invoke.call(
       {
         type: 'this',
         value: 'this'
       },
-      'getElementHandle',
-      matcher._call
+      'selectElementWithMatcher',
+      ...matchers.map((m) => m._call)
     );
     if (this._atIndex !== undefined) {
       this.atIndex(this._atIndex);

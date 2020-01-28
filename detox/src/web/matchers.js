@@ -15,7 +15,15 @@ class Matcher {
   }
   and(matcher) {
     const _originalMatcherCall = this._call;
-    this._call = invoke.callDirectly(GreyMatchersDetox.detoxMatcherForBothAnd(_originalMatcherCall, matcher._call));
+    // this._call = invoke.callDirectly(GreyMatchersDetox.detoxMatcherForBothAnd(_originalMatcherCall, matcher._call));
+    this._call = {
+      target: {
+        type: 'matcher',
+        value: 'matcher'
+      },
+      method: 'and',
+      args: [_originalMatcherCall, matcher._call]
+    };
     return this;
   }
   not() {
@@ -51,8 +59,12 @@ class IdMatcher extends Matcher {
   constructor(value) {
     super();
     this._call = {
-      type: 'matcher',
-      selector: `[data-testid="${value}"]`
+      target: {
+        type: 'matcher',
+        value: 'matcher'
+      },
+      method: 'selector',
+      args: [`[data-testid="${value}"]`]
     };
   }
 }
@@ -60,70 +72,99 @@ class IdMatcher extends Matcher {
 class TypeMatcher extends Matcher {
   constructor(value) {
     super();
-    this._call = invoke.callDirectly(GreyMatchersDetox.detoxMatcherForClass(value));
+    this._call = {
+      target: {
+        type: 'matcher',
+        value: 'matcher'
+      },
+      method: 'selector',
+      args: [`${value}`]
+    };
   }
 }
 
+// iOS only, just a dummy matcher here
 class TraitsMatcher extends Matcher {
   constructor(value) {
     super();
-    this._call = invoke.callDirectly(GreyMatchers.matcherForAccessibilityTraits(value));
+    this._call = {
+      target: {
+        type: 'matcher',
+        value: 'matcher'
+      },
+      method: 'selector',
+      args: [`*`]
+    };
   }
 }
 
 class VisibleMatcher extends Matcher {
   constructor() {
     super();
-    this._call = invoke.callDirectly({
+    this._call = {
       target: {
-        type: 'Class',
-        value: 'GREYMatchers'
+        type: 'matcher',
+        value: 'matcher'
       },
-      method: 'isIntersectingViewport',
-      args: []
-    });
+      method: 'option',
+      args: [{ visible: true }]
+    };
   }
 }
 
 class NotVisibleMatcher extends Matcher {
   constructor() {
     super();
-    this._call = invoke.callDirectly({
+    this._call = {
       target: {
-        type: 'Class',
-        value: 'GREYMatchers'
+        type: 'matcher',
+        value: 'matcher'
       },
-      method: 'isIntersectingViewport',
-      args: []
-    });
+      method: 'option',
+      args: [{ visible: false }]
+    };
   }
 }
 
 class ExistsMatcher extends Matcher {
   constructor() {
     super();
-    this._call = invoke.callDirectly(GreyMatchers.matcherForNotNil());
+    this._call = GreyMatchers.matcherForNotNil();
   }
 }
 
 class NotExistsMatcher extends Matcher {
   constructor() {
     super();
-    this._call = invoke.callDirectly(GreyMatchers.matcherForNil());
+    this._call = GreyMatchers.matcherForNil();
   }
 }
 
 class TextMatcher extends Matcher {
   constructor(value) {
     super();
-    this._call = invoke.callDirectly(GreyMatchersDetox.detoxMatcherForText(value));
+    this._call = {
+      target: {
+        type: 'matcher',
+        value: 'matcher'
+      },
+      method: 'containsText',
+      args: [value]
+    };
   }
 }
 
 class ValueMatcher extends Matcher {
   constructor(value) {
     super();
-    this._call = invoke.callDirectly(GreyMatchers.matcherForAccessibilityValue(value));
+    this._call = {
+      target: {
+        type: 'matcher',
+        value: 'matcher'
+      },
+      method: 'selector',
+      args: [`[value="${value}"]`]
+    };
   }
 }
 

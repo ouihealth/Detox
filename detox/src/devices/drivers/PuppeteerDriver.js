@@ -20,7 +20,14 @@ const puppeteer = require('puppeteer');
 const Client = require('../../client/Client');
 const { LoginTestee } = require('../../client/actions/actions');
 
+function sleep(ms) {
+  return new Promise((res) => {
+    setTimeout(res, ms);
+  });
+}
+
 function debug(label, ...args) {
+  return;
   console.log(`PuppeteerDriver.${label}`, ...args);
 }
 
@@ -32,36 +39,83 @@ class PuppeteerTestee {
     this.client = new Client(this.configuration);
   }
 
+  async selectElementWithMatcher(...args) {
+    console.log('selectElementWithMatcher', args);
+    const selectorArg = args.find((a) => a.method === 'selector');
+    const timeoutArg = args.find((a) => a.method === 'option' && typeof a.args[0].timeout === 'number');
+    // console.log('args', ...selectorArg.args, ...timeoutArg.args);
+    return await page.waitFor(
+      ({ selectorArg }) => {
+        return document.querySelector(selectorArg.args.join(''));
+      },
+      { timeout: timeoutArg ? timeoutArg.args[0].timeout : 5000 },
+      { selectorArg }
+    );
+  }
+
   async getElementHandle(...args) {
     console.log('getElementHandle', args);
     return await page.waitForSelector(...args);
   }
 
-  async assertWithMatcher(...args) {
-    console.log('assertWithMatcher', args);
-    const result = await args[0][args[1].method]();
+  async performAction(element, action) {
+    console.log('performAction', element, action);
+    if (action.method === 'replaceText') {
+      await element.click();
+      await page.keyboard.type(action.args[0]);
+      return true;
+    } else if (action.method === 'tap') {
+      await element.tap();
+      return true;
+    }
+
+    await element.evaluate((el, action) => {
+      console.log(el, action);
+    }, action);
+
+    return false;
+  }
+
+  async assertWithMatcher(element, matcher) {
+    console.log('assertWithMatcher', matcher);
+    const isVisibleMatcher = matcher.method === 'option' && matcher.args[0].visible === true;
+    const isNotVisibleMatcher = matcher.method === 'option' && matcher.args[0].visible === false;
+
+    const isVisible = element.isIntersectingViewport();
+
+    let result = true;
+    if (isVisibleMatcher && !isVisible) {
+      result = false;
+    }
+    if (isNotVisibleMatcher && isVisible) {
+      result = false;
+    }
+
     if (!result) throw new Error('assertion failed');
     return result;
   }
 
-  async invoke(params) {
-    console.log({ params });
+  async invoke(params, logLevel = console.log) {
+    logLevel('invoke', JSON.stringify(params, null, 2));
     const promises = params.args.map((arg) => {
+      logLevel('arg', arg);
       if (arg.type === 'Invocation') {
+        console.log('going to invoke, be careful');
         return this.invoke(arg.value);
-      } else if (arg.type === 'matcher') {
-        return arg.selector;
       }
+      return arg;
     });
 
+    logLevel('propmises', promises);
     const args = await Promise.all(promises);
-    console.log('call', params, args);
+    logLevel('call', params, args);
     if (params.target === 'this' || params.target.type === 'this') {
       const result = await this[params.method](...args);
-      console.log('result', params.method, result);
+      logLevel('result?', params.method, !!result);
       return result;
     }
 
+    logLevel('return params', params);
     return params;
   }
 
@@ -83,12 +137,13 @@ class PuppeteerTestee {
           return;
         }
         if (action.type === 'loginSuccess') return;
-        console.log('waitForSelector', action);
+        console.log('action', JSON.stringify(action, null, 2));
         try {
           await this.invoke(action.params);
+          console.log('after invoke');
         } catch (e) {
-          browser.close();
           console.error(e);
+          browser.close();
         }
         this.client.ws.ws.send(JSON.stringify({ type: 'invokeResult', messageId: action.messageId }));
       } catch (err) {
@@ -230,7 +285,7 @@ class PuppeteerDriver extends DeviceDriverBase {
   async launchApp(deviceId, bundleId, launchArgs, languageAndLocale) {
     debug('launchApp', { deviceId, bundleId, launchArgs, languageAndLocale });
     await this.emitter.emit('beforeLaunchApp', { bundleId, deviceId, launchArgs });
-    browser = await puppeteer.launch({ headless: false });
+    browser = await puppeteer.launch({ devtools: true, headless: false });
     if (launchArgs.detoxURLOverride) {
       page = (await browser.pages())[0];
       await page.goto(launchArgs.detoxURLOverride);
