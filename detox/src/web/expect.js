@@ -286,7 +286,11 @@ class WaitForActionInteraction extends Interaction {
       callThunk(this._searchMatcher)
     );
 
-    this._call = GreyInteraction.assertWithMatcher(invoke.callDirectly(_interactionCall), callThunk(this._originalMatcher));
+    this._call = {
+      target: 'this',
+      method: 'assertWithMatcher',
+      args: [invoke.callDirectly(_interactionCall), callThunk(this._originalMatcher)]
+    }
     await this.execute();
   }
   async scroll(amount, direction = 'down', startScrollX, startScrollY) {
