@@ -31,7 +31,8 @@ function debug(label, ...args) {
   console.log(`PuppeteerDriver.${label}`, ...args);
 }
 
-let browser, page, urlBlacklist;
+let browser, page;
+let urlBlacklist = [];
 class PuppeteerTestee {
   constructor(config) {
     console.log('PuppeteerTestee.constructor', config);
@@ -106,14 +107,15 @@ class PuppeteerTestee {
     const isVisibleMatcher = matcher.method === 'option' && matcher.args[0].visible === true;
     const isNotVisibleMatcher = matcher.method === 'option' && matcher.args[0].visible === false;
 
-    const isVisible = element.isIntersectingViewport();
-
     let result = true;
-    if (isVisibleMatcher && !isVisible) {
-      result = false;
-    }
-    if (isNotVisibleMatcher && isVisible) {
-      result = false;
+    if (isVisibleMatcher || isNotVisibleMatcher) {
+      const isVisible = await element.isIntersectingViewport();
+      if (isVisibleMatcher && !isVisible) {
+        result = false;
+      }
+      if (isNotVisibleMatcher && isVisible) {
+        result = false;
+      }
     }
 
     if (!result) throw new Error('assertion failed');
@@ -352,9 +354,11 @@ class PuppeteerDriver extends DeviceDriverBase {
     debug('launchApp', { deviceId, bundleId, launchArgs, languageAndLocale });
     await this.emitter.emit('beforeLaunchApp', { bundleId, deviceId, launchArgs });
     browser = await puppeteer.launch({ devtools: true, headless: false });
-    if (launchArgs.detoxURLOverride) {
+    console.log('override', launchArgs.detoxURLOverride);
+    const url = launchArgs.detoxURLOverride || this.deviceConfig.baseUrl;
+    if (url) {
       page = (await browser.pages())[0];
-      await page.goto(launchArgs.detoxURLOverride);
+      await page.goto(url);
     }
     // const pid = await this.applesimutils.launch(deviceId, bundleId, launchArgs, languageAndLocale);
     const pid = 'PID';
@@ -420,6 +424,7 @@ class PuppeteerDriver extends DeviceDriverBase {
   }
 
   validateDeviceConfig(deviceConfig) {
+    this.deviceConfig = deviceConfig;
     debug('validateDeviceConfig', deviceConfig);
     if (!deviceConfig.baseUrl) {
       console.error('PuppeteerDriver requires baseUrl to be set in detox config');
@@ -550,6 +555,14 @@ class PuppeteerDriver extends DeviceDriverBase {
 
   async waitUntilReady() {
     await this.testee.connect();
+  }
+
+  async reloadReactNative() {
+    const url = this.deviceConfig.baseUrl;
+    if (url) {
+      page = (await browser.pages())[0];
+      await page.goto(url);
+    }
   }
 }
 
