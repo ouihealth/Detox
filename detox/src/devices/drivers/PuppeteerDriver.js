@@ -140,17 +140,28 @@ class PuppeteerTestee {
 
   async assertWithMatcher(element, matcher) {
     console.log('assertWithMatcher', matcher);
-    const exists = !!element;
+    const isExists = !!element;
     const isVisibleMatcher = matcher.method === 'option' && matcher.args[0].visible === true;
     const isNotVisibleMatcher = matcher.method === 'option' && matcher.args[0].visible === false;
+    const isExistsMatcher = matcher.method === 'option' && matcher.args[0].exists === true;
+    const isNotExistsMatcher = matcher.method === 'option' && matcher.args[0].exists === false;
+    console.log('assertWithMatcher', { isExists, isVisibleMatcher, isExistsMatcher, isNotExistsMatcher });
 
     let result = true;
     if (isVisibleMatcher || isNotVisibleMatcher) {
-      const isVisible = element ? await element.isIntersectingViewport() : exists;
+      const isVisible = isExists ? await element.isIntersectingViewport() : false;
       if (isVisibleMatcher && !isVisible) {
         result = false;
       }
       if (isNotVisibleMatcher && isVisible) {
+        result = false;
+      }
+    }
+    if (isExistsMatcher || isNotExistsMatcher) {
+      if (isExistsMatcher && !isExists) {
+        result = false;
+      }
+      if (isNotExistsMatcher && isExists) {
         result = false;
       }
     }
@@ -247,8 +258,14 @@ class PuppeteerTestee {
         } else if (action.type === 'currentStatus') {
           await sendResponse({ type: 'currentStatusResult', params: { resources: [] } });
         } else {
-          await this.invoke(action.params);
-          await sendResponse({ type: 'invokeResult', messageId: action.messageId });
+          try {
+            await this.invoke(action.params);
+            await sendResponse({ type: 'invokeResult', messageId: action.messageId });
+          } catch (error) {
+            if (error.message === 'assertion failed') {
+              await sendResponse({ type: 'testFailed', messageId, params: { details: error.message } });
+            }
+          }
         }
       } catch (error) {
         await sendResponse({ type: 'error', messageId: messageId, params: { error } });

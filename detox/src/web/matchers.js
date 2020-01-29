@@ -5,12 +5,28 @@ const GreyMatchersDetox = require('../ios/earlgreyapi/GREYMatchers+Detox');
 class Matcher {
   withAncestor(matcher) {
     const _originalMatcherCall = this._call;
-    this._call = invoke.callDirectly(GreyMatchersDetox.detoxMatcherForBothAndAncestorMatcher(_originalMatcherCall, matcher._call));
+    if (_originalMatcherCall.method === 'selector' && matcher._call.method === 'selector') {
+      this._call = {
+        ..._originalMatcherCall,
+        args: [...matcher._call.args, ..._originalMatcherCall.args]
+      };
+    } else {
+      throw new Error('Complex withAncestor not supported');
+    }
     return this;
   }
   withDescendant(matcher) {
     const _originalMatcherCall = this._call;
-    this._call = invoke.callDirectly(GreyMatchersDetox.detoxMatcherForBothAndDescendantMatcher(_originalMatcherCall, matcher._call));
+    if (_originalMatcherCall.method === 'selector' && matcher._call.method === 'selector') {
+      this._call = {
+        ..._originalMatcherCall,
+        // TODO this logic isn't right. We want to return the parent part of the selector in this case
+        // Need a more generic function that selectElementWithMatcher that takes an optional root element
+        args: [..._originalMatcherCall.args, ...matcher._call.args]
+      };
+    } else {
+      throw new Error('Complex withDescendent not supported');
+    }
     return this;
   }
   and(matcher) {
@@ -151,14 +167,28 @@ class NotVisibleMatcher extends Matcher {
 class ExistsMatcher extends Matcher {
   constructor() {
     super();
-    this._call = GreyMatchers.matcherForNotNil();
+    this._call = {
+      target: {
+        type: 'matcher',
+        value: 'matcher'
+      },
+      method: 'option',
+      args: [{ exists: true }]
+    };
   }
 }
 
 class NotExistsMatcher extends Matcher {
   constructor() {
     super();
-    this._call = GreyMatchers.matcherForNil();
+    this._call = {
+      target: {
+        type: 'matcher',
+        value: 'matcher'
+      },
+      method: 'option',
+      args: [{ exists: false }]
+    };
   }
 }
 
