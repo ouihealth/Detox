@@ -2,6 +2,7 @@ const invoke = require('../invoke');
 const matchers = require('./matchers');
 const Matcher = matchers.Matcher;
 const LabelMatcher = matchers.LabelMatcher;
+const IndexMatcher = matchers.IndexMatcher;
 const IdMatcher = matchers.IdMatcher;
 const TypeMatcher = matchers.TypeMatcher;
 const TraitsMatcher = matchers.TraitsMatcher;
@@ -20,28 +21,6 @@ const GreyActionsDetox = require('../ios/earlgreyapi/GREYActions+Detox');
 function callThunk(element) {
   return typeof element._call === 'function' ? element._call() : element._call;
 }
-
-//// examples
-
-/*
-
-element(by.label('Click Me')).tap();
-[[EarlGrey selectElementWithMatcher:grey_accessibilityLabel(@"Click Me")] performAction:grey_tap()];
-const _getMatcher1 = detox.invoke.call(detox.invoke.IOS.Class('GREYMatchers'), 'matcherForAccessibilityLabel:', 'Click Me');
-const _getElement1 = detox.invoke.call(detox.invoke.EarlGrey.instance, 'selectElementWithMatcher:', _getMatcher1);
-const _getAction1 = detox.invoke.call(detox.invoke.IOS.Class('GREYActions'), 'actionForTap');
-const _getInteraction1 = detox.invoke.call(_getElement1, 'performAction:', _getAction1);
-detox.invoke.execute(_getInteraction1);
-
-expect(element(by.label('Yay'))).toBeVisible();
-[[EarlGrey selectElementWithMatcher:grey_accessibilityLabel(@"Yay")] assertWithMatcher:grey_sufficientlyVisible()];
-const _getMatcher2 = detox.invoke.call(detox.invoke.IOS.Class('GREYMatchers'), 'matcherForAccessibilityLabel:', 'Yay');
-const _getElement2 = detox.invoke.call(detox.invoke.EarlGrey.instance, 'selectElementWithMatcher:', _getMatcher2);
-const _getAssertMatcher2 = detox.invoke.call(detox.invoke.IOS.Class('GREYMatchers'), 'matcherForSufficientlyVisible');
-const _getInteraction2 = detox.invoke.call(_getElement2, 'assertWithMatcher:', _getAssertMatcher2);
-detox.invoke.execute(_getInteraction2);
-
-*/
 
 class Action {}
 
@@ -286,11 +265,7 @@ class WaitForActionInteraction extends Interaction {
       callThunk(this._searchMatcher)
     );
 
-    this._call = {
-      target: 'this',
-      method: 'assertWithMatcher',
-      args: [invoke.callDirectly(_interactionCall), callThunk(this._originalMatcher)]
-    }
+    this._call = GreyInteraction.assertWithMatcher(invoke.callDirectly(_interactionCall), callThunk(this._originalMatcher));
     await this.execute();
   }
   async scroll(amount, direction = 'down', startScrollX, startScrollY) {
@@ -318,15 +293,15 @@ class Element {
       'selectElementWithMatcher',
       ...matchers.map((m) => m._call)
     );
-    if (this._atIndex !== undefined) {
-      this.atIndex(this._atIndex);
-    }
+    // if (this._atIndex !== undefined) {
+    //   this.atIndex(this._atIndex);
+    // }
   }
   atIndex(index) {
     if (typeof index !== 'number') throw new Error(`Element atIndex argument must be a number, got ${typeof index}`);
     const _originalCall = this._call;
     this._atIndex = index;
-    this._call = invoke.call(_originalCall, 'atIndex:', invoke.IOS.NSInteger(index));
+    this._selectElementWithMatcher(this._originalMatcher, new IndexMatcher(index));
     return this;
   }
   async tap() {

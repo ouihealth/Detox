@@ -48,10 +48,32 @@ class Matcher {
   }
 }
 
+class IndexMatcher extends Matcher {
+  constructor(value) {
+    super();
+    this._call = {
+      target: {
+        type: 'matcher',
+        value: 'matcher'
+      },
+      method: 'index',
+      args: [value]
+    };
+  }
+}
+
 class LabelMatcher extends Matcher {
   constructor(value) {
     super();
-    this._call = invoke.callDirectly(GreyMatchersDetox.detox_matcherForAccessibilityLabel(value));
+    // TODO change to accessibilityLabel
+    this._call = {
+      target: {
+        type: 'matcher',
+        value: 'matcher'
+      },
+      method: 'containsText',
+      args: [value]
+    };
   }
 }
 
@@ -179,5 +201,6 @@ module.exports = {
   ExistsMatcher,
   NotExistsMatcher,
   TextMatcher,
+  IndexMatcher,
   ValueMatcher
 };

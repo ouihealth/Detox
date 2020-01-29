@@ -43,15 +43,51 @@ class PuppeteerTestee {
   async selectElementWithMatcher(...args) {
     console.log('selectElementWithMatcher', args);
     const selectorArg = args.find((a) => a.method === 'selector');
+    const containsTextArg = args.find((a) => a.method === 'containsText');
     const timeoutArg = args.find((a) => a.method === 'option' && typeof a.args[0].timeout === 'number');
+    const indexArg = args.find((a) => a.method === 'index');
     // console.log('args', ...selectorArg.args, ...timeoutArg.args);
-    return await page.waitFor(
-      ({ selectorArg }) => {
-        return document.querySelector(selectorArg.args.join(''));
-      },
-      { timeout: timeoutArg ? timeoutArg.args[0].timeout : 5000 },
-      { selectorArg }
-    );
+    try {
+      // TODO see if xpath is better b/c we can include contains text in the first query vs
+      // a special loop after
+      const a = await page.waitFor(
+        ({ containsTextArg, selectorArg, indexArg }) => {
+          // return document.querySelector(selectorArg ? selectorArg.args.join('') : 'body');
+          let candidates = Array.prototype.slice.apply(document.querySelectorAll(selectorArg ? selectorArg.args.join('') : 'body'), [0]);
+
+          // console.log({ containsTextArg, selectorArg, indexArg });
+          if (containsTextArg) {
+            // console.log(containsTextArg, candidates, `//*[contains(., '${containsTextArg.args[0]}')]`);
+            candidates = candidates
+              .map((candidate) => {
+                const xPathResult = document.evaluate(`//*[contains(., '${containsTextArg.args[0]}')]`, candidate);
+                const elements = [];
+                let maybeElement;
+                while ((maybeElement = xPathResult.iterateNext())) {
+                  if (maybeElement) console.log(`//*[contains(., '${containsTextArg.args[0]}')]`, maybeElement.children);
+                  if (maybeElement && maybeElement.children.length === 0) {
+                    console.log('add', maybeElement);
+                    elements.push(maybeElement);
+                  }
+                }
+                return elements;
+              })
+              .flat()
+              .filter((e) => !!e);
+            // console.log('post', candidates);
+          }
+
+          return candidates[indexArg ? indexArg.args[0] : 0];
+        },
+        { timeout: timeoutArg ? timeoutArg.args[0].timeout : 1000 },
+        { selectorArg, containsTextArg, indexArg }
+      );
+      console.log(a);
+      return a;
+    } catch (e) {
+      console.error(e);
+      return null;
+    }
   }
 
   async getElementHandle(...args) {
@@ -104,12 +140,13 @@ class PuppeteerTestee {
 
   async assertWithMatcher(element, matcher) {
     console.log('assertWithMatcher', matcher);
+    const exists = !!element;
     const isVisibleMatcher = matcher.method === 'option' && matcher.args[0].visible === true;
     const isNotVisibleMatcher = matcher.method === 'option' && matcher.args[0].visible === false;
 
     let result = true;
     if (isVisibleMatcher || isNotVisibleMatcher) {
-      const isVisible = await element.isIntersectingViewport();
+      const isVisible = element ? await element.isIntersectingViewport() : exists;
       if (isVisibleMatcher && !isVisible) {
         result = false;
       }
@@ -207,6 +244,8 @@ class PuppeteerTestee {
           return;
         } else if (action.type === 'deliverPayload') {
           await sendResponse({ type: 'deliverPayloadDone', messageId: action.messageId });
+        } else if (action.type === 'currentStatus') {
+          await sendResponse({ type: 'currentStatusResult', params: { resources: [] } });
         } else {
           await this.invoke(action.params);
           await sendResponse({ type: 'invokeResult', messageId: action.messageId });
