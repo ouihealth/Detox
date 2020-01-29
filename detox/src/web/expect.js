@@ -156,44 +156,14 @@ class SwipeAction extends Action {
     if (typeof direction !== 'string') throw new Error(`SwipeAction ctor 1st argument must be a string, got ${typeof direction}`);
     if (typeof speed !== 'string') throw new Error(`SwipeAction ctor 2nd argument must be a string, got ${typeof speed}`);
 
-    if (percentage) {
-      let x, y;
-      const eps = 10 ** -8;
-      switch (direction) {
-        case 'left':
-          (x = percentage), (y = eps);
-          break;
-        case 'right':
-          (x = percentage), (y = eps);
-          break;
-        case 'up':
-          (y = percentage), (x = eps);
-          break;
-        case 'down':
-          (y = percentage), (x = eps);
-          break;
-      }
-
-      if (speed === 'fast') {
-        this._call = invoke.callDirectly(
-          GreyActions.actionForSwipeFastInDirectionXOriginStartPercentageYOriginStartPercentage(direction, x, y)
-        );
-      } else if (speed === 'slow') {
-        this._call = invoke.callDirectly(
-          GreyActions.actionForSwipeSlowInDirectionXOriginStartPercentageYOriginStartPercentage(direction, x, y)
-        );
-      } else {
-        throw new Error(`SwipeAction speed must be a 'fast'/'slow', got ${speed}`);
-      }
-    } else {
-      if (speed === 'fast') {
-        this._call = invoke.callDirectly(GreyActions.actionForSwipeFastInDirection(direction));
-      } else if (speed === 'slow') {
-        this._call = invoke.callDirectly(GreyActions.actionForSwipeSlowInDirection(direction));
-      } else {
-        throw new Error(`SwipeAction speed must be a 'fast'/'slow', got ${speed}`);
-      }
-    }
+    this._call = {
+      target: {
+        type: 'action',
+        value: 'action'
+      },
+      method: 'swipe',
+      args: [direction, speed, percentage]
+    };
   }
 }
 
@@ -400,8 +370,6 @@ class Element {
     return await new ActionInteraction(this._invocationManager, this, new ScrollEdgeAction(edge)).execute();
   }
   async swipe(direction, speed = 'fast', percentage = 0) {
-    // override the user's element selection with an extended matcher that avoids RN issues with RCTScrollView
-    this._selectElementWithMatcher(this._originalMatcher._avoidProblematicReactNativeElements());
     return await new ActionInteraction(this._invocationManager, this, new SwipeAction(direction, speed, percentage)).execute();
   }
   async setColumnToValue(column, value) {

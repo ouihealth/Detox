@@ -59,7 +59,7 @@ class PuppeteerTestee {
   }
 
   async performAction(element, action) {
-    console.log('performAction', element, action);
+    console.log('performAction', action);
     if (action.method === 'replaceText') {
       await element.click();
       await page.keyboard.type(action.args[0]);
@@ -67,11 +67,36 @@ class PuppeteerTestee {
     } else if (action.method === 'tap') {
       await element.tap();
       return true;
+    } else if (action.method === 'swipe') {
+      const direction = action.args[0];
+      const speed = action.args[1];
+      const percentage = action.args[2];
+
+      // TODO handle all options
+      let top = 0;
+      let left = 0;
+      if (direction === 'up') {
+        top = 10000;
+      } else if (direction === 'down') {
+        top = -10000;
+      } else if (direction === 'left') {
+        left = 10000;
+      } else if (direction === 'right') {
+        left = -10000;
+      }
+
+      await element.evaluate(
+        (el, scrollOptions) => {
+          el.scrollBy(scrollOptions);
+        },
+        { top, left }
+      );
+      return true;
     }
 
-    await element.evaluate((el, action) => {
-      console.log(el, action);
-    }, action);
+    // await element.evaluate((el, action) => {
+    //   console.log(el, action);
+    // });
 
     return false;
   }
@@ -133,7 +158,6 @@ class PuppeteerTestee {
 
       const networkSettledPromise = new Promise((resolve) => {
         function addInflightRequest(request) {
-          console.log(request.url());
           inflightRequests[request.uid] = true;
         }
 
@@ -160,30 +184,35 @@ class PuppeteerTestee {
         });
       });
 
+      const sendResponse = (response) => {
+        console.log('sendResponse');
+        actionComplete = true;
+        const sendResponsePromise = Object.keys(inflightRequests).length === 0 ? Promise.resolve() : networkSettledPromise;
+        return sendResponsePromise.then(() => {
+          this.client.ws.ws.send(JSON.stringify(response));
+        });
+      };
+
+      let messageId;
       try {
         const action = JSON.parse(str);
+        messageId = action.messageId;
         console.log('PuppeteerTestee.message', JSON.stringify(action, null, 2));
         if (!action.type) {
           return;
         }
-        if (action.type === 'loginSuccess') return;
-        console.log('action', JSON.stringify(action, null, 2));
-        try {
+        if (action.type === 'loginSuccess') {
+          return;
+        } else if (action.type === 'deliverPayload') {
+          await sendResponse({ type: 'deliverPayloadDone', messageId: action.messageId });
+        } else {
           await this.invoke(action.params);
-          console.log('after invoke');
-        } catch (e) {
-          console.error(e);
-          browser.close();
+          await sendResponse({ type: 'invokeResult', messageId: action.messageId });
         }
-
-        // End state
-        actionComplete = true;
-        const sendResponsePromise = Object.keys(inflightRequests).length === 0 ? Promise.resolve() : networkSettledPromise;
-        sendResponsePromise.then(() => {
-          this.client.ws.ws.send(JSON.stringify({ type: 'invokeResult', messageId: action.messageId }));
-        });
-      } catch (err) {
-        console.error(err);
+      } catch (error) {
+        await sendResponse({ type: 'error', messageId: messageId, params: { error } });
+        console.error(error);
+        browser.close();
       }
     });
 
