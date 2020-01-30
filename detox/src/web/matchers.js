@@ -106,7 +106,7 @@ class LabelMatcher extends Matcher {
         value: 'matcher'
       },
       method: 'selector',
-      args: [`[contains(., '${value}')]`]
+      args: [`[contains(., '${value}') or @value='${value}']`]
     };
   }
 }
@@ -219,7 +219,7 @@ class TextMatcher extends Matcher {
         value: 'matcher'
       },
       method: 'selector',
-      args: [`[contains(., '${value}')]`]
+      args: [`[contains(., '${value}') or @value='${value}']`]
     };
   }
 }

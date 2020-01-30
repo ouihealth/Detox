@@ -110,7 +110,28 @@ class PinchAction extends Action {
 class TypeTextAction extends Action {
   constructor(value) {
     super();
-    this._call = invoke.callDirectly(GreyActions.actionForTypeText(value));
+    this._call = {
+      target: {
+        type: 'action',
+        value: 'action'
+      },
+      method: 'typeText',
+      args: [value]
+    };
+  }
+}
+
+class KeyboardPressAction extends Action {
+  constructor(value) {
+    super();
+    this._call = {
+      target: {
+        type: 'action',
+        value: 'action'
+      },
+      method: 'keyboardPress',
+      args: [value]
+    };
   }
 }
 
@@ -131,7 +152,14 @@ class ReplaceTextAction extends Action {
 class ClearTextAction extends Action {
   constructor() {
     super();
-    this._call = invoke.callDirectly(GreyActions.actionForClearText());
+    this._call = {
+      target: {
+        type: 'action',
+        value: 'action'
+      },
+      method: 'clearText',
+      args: []
+    };
   }
 }
 
@@ -345,10 +373,10 @@ class Element {
     return await new ActionInteraction(this._invocationManager, this, new MultiTapAction(value)).execute();
   }
   async tapBackspaceKey() {
-    return await new ActionInteraction(this._invocationManager, this, new TypeTextAction('\b')).execute();
+    return await new ActionInteraction(this._invocationManager, this, new KeyboardPressAction('Backspace')).execute();
   }
   async tapReturnKey() {
-    return await new ActionInteraction(this._invocationManager, this, new TypeTextAction('\n')).execute();
+    return await new ActionInteraction(this._invocationManager, this, new TypeTextAction(String.fromCharCode(13))).execute();
   }
   async typeText(value) {
     return await new ActionInteraction(this._invocationManager, this, new TypeTextAction(value)).execute();
