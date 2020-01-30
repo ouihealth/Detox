@@ -41,51 +41,39 @@ class PuppeteerTestee {
   }
 
   async selectElementWithMatcher(...args) {
-    console.log('selectElementWithMatcher', args);
+    console.log('selectElementWithMatcher', JSON.stringify(args, null, 2));
     const selectorArg = args.find((a) => a.method === 'selector');
-    const containsTextArg = args.find((a) => a.method === 'containsText');
     const timeoutArg = args.find((a) => a.method === 'option' && typeof a.args[0].timeout === 'number');
     const indexArg = args.find((a) => a.method === 'index');
-    // console.log('args', ...selectorArg.args, ...timeoutArg.args);
     try {
-      // TODO see if xpath is better b/c we can include contains text in the first query vs
-      // a special loop after
       const a = await page.waitFor(
-        ({ containsTextArg, selectorArg, indexArg }) => {
+        ({ selectorArg, indexArg }) => {
+          const xpath = selectorArg.args[0];
+          const isContainMatcher = xpath.includes('contains(');
           // return document.querySelector(selectorArg ? selectorArg.args.join('') : 'body');
-          let candidates = Array.prototype.slice.apply(document.querySelectorAll(selectorArg ? selectorArg.args.join('') : 'body'), [0]);
-
-          // console.log({ containsTextArg, selectorArg, indexArg });
-          if (containsTextArg) {
-            // console.log(containsTextArg, candidates, `//*[contains(., '${containsTextArg.args[0]}')]`);
-            candidates = candidates
-              .map((candidate) => {
-                const xPathResult = document.evaluate(`//*[contains(., '${containsTextArg.args[0]}')]`, candidate);
-                const elements = [];
-                let maybeElement;
-                while ((maybeElement = xPathResult.iterateNext())) {
-                  if (maybeElement) console.log(`//*[contains(., '${containsTextArg.args[0]}')]`, maybeElement.children);
-                  if (maybeElement && maybeElement.children.length === 0) {
-                    console.log('add', maybeElement);
-                    elements.push(maybeElement);
-                  }
-                }
-                return elements;
-              })
-              .flat()
-              .filter((e) => !!e);
-            // console.log('post', candidates);
+          // let candidates = Array.prototype.slice.apply(document.querySelectorAll(selectorArg ? selectorArg.args.join('') : 'body'), [0]);
+          const iterator = document.evaluate(`//*${xpath}`, document.body);
+          const elements = [];
+          let maybeElement, lastMatch;
+          while ((maybeElement = iterator.iterateNext())) {
+            lastMatch = maybeElement;
+            // xpaths matching on text match every parent in addition to the
+            // element we actually care about so only take the element if it
+            // is a leaf
+            if (!isContainMatcher || maybeElement.children.length === 0) {
+              elements.push(maybeElement);
+            }
           }
 
-          return candidates[indexArg ? indexArg.args[0] : 0];
+          return elements[indexArg ? indexArg.args[0] : 0];
         },
-        { timeout: timeoutArg ? timeoutArg.args[0].timeout : 1000 },
-        { selectorArg, containsTextArg, indexArg }
+        { timeout: timeoutArg ? timeoutArg.args[0].timeout : 50 },
+        { selectorArg, indexArg }
       );
       console.log(a);
       return a;
     } catch (e) {
-      console.error(e);
+      console.warn(e);
       return null;
     }
   }
@@ -262,9 +250,7 @@ class PuppeteerTestee {
             await this.invoke(action.params);
             await sendResponse({ type: 'invokeResult', messageId: action.messageId });
           } catch (error) {
-            if (error.message === 'assertion failed') {
-              await sendResponse({ type: 'testFailed', messageId, params: { details: error.message } });
-            }
+            await sendResponse({ type: 'testFailed', messageId, params: { details: error.message } });
           }
         }
       } catch (error) {

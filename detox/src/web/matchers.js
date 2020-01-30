@@ -8,7 +8,7 @@ class Matcher {
     if (_originalMatcherCall.method === 'selector' && matcher._call.method === 'selector') {
       this._call = {
         ..._originalMatcherCall,
-        args: [...matcher._call.args, ..._originalMatcherCall.args]
+        args: [`${matcher._call.args[0]}//*${_originalMatcherCall.args[0]}`]
       };
     } else {
       throw new Error('Complex withAncestor not supported');
@@ -20,9 +20,7 @@ class Matcher {
     if (_originalMatcherCall.method === 'selector' && matcher._call.method === 'selector') {
       this._call = {
         ..._originalMatcherCall,
-        // TODO this logic isn't right. We want to return the parent part of the selector in this case
-        // Need a more generic function that selectElementWithMatcher that takes an optional root element
-        args: [..._originalMatcherCall.args, ...matcher._call.args]
+        args: [`${_originalMatcherCall.args[0]}[descendant::*${matcher._call.args[0]}]`]
       };
     } else {
       throw new Error('Complex withDescendent not supported');
@@ -31,15 +29,35 @@ class Matcher {
   }
   and(matcher) {
     const _originalMatcherCall = this._call;
-    // this._call = invoke.callDirectly(GreyMatchersDetox.detoxMatcherForBothAnd(_originalMatcherCall, matcher._call));
-    this._call = {
-      target: {
-        type: 'matcher',
-        value: 'matcher'
-      },
-      method: 'and',
-      args: [_originalMatcherCall, matcher._call]
-    };
+    // TODO guard around complex combos
+    if (matcher._call.args[0].startsWith('/')) {
+      this._call = {
+        target: {
+          type: 'matcher',
+          value: 'matcher'
+        },
+        method: 'selector',
+        args: [`${matcher._call.args[0]}${_originalMatcherCall.args[0]}`]
+      };
+    } else if (_originalMatcherCall.args[0].startsWith('/')) {
+      this._call = {
+        target: {
+          type: 'matcher',
+          value: 'matcher'
+        },
+        method: 'selector',
+        args: [`${_originalMatcherCall.args[0]}${matcher._call.args[0]}`]
+      };
+    } else {
+      this._call = {
+        target: {
+          type: 'matcher',
+          value: 'matcher'
+        },
+        method: 'selector',
+        args: [`${_originalMatcherCall.args[0]}${matcher._call.args[0]}`]
+      };
+    }
     return this;
   }
   not() {
@@ -87,8 +105,8 @@ class LabelMatcher extends Matcher {
         type: 'matcher',
         value: 'matcher'
       },
-      method: 'containsText',
-      args: [value]
+      method: 'selector',
+      args: [`[contains(., '${value}')]`]
     };
   }
 }
@@ -102,7 +120,7 @@ class IdMatcher extends Matcher {
         value: 'matcher'
       },
       method: 'selector',
-      args: [`[data-testid="${value}"]`]
+      args: [`[@data-testid="${value}"]`]
     };
   }
 }
@@ -116,7 +134,7 @@ class TypeMatcher extends Matcher {
         value: 'matcher'
       },
       method: 'selector',
-      args: [`${value}`]
+      args: [`//${value}`]
     };
   }
 }
@@ -200,8 +218,8 @@ class TextMatcher extends Matcher {
         type: 'matcher',
         value: 'matcher'
       },
-      method: 'containsText',
-      args: [value]
+      method: 'selector',
+      args: [`[contains(., '${value}')]`]
     };
   }
 }
@@ -215,7 +233,7 @@ class ValueMatcher extends Matcher {
         value: 'matcher'
       },
       method: 'selector',
-      args: [`[value="${value}"]`]
+      args: [`[@value="${value}"]`]
     };
   }
 }
