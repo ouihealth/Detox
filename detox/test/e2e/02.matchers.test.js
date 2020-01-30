@@ -41,7 +41,7 @@ describe('Matchers', () => {
     await expect(element(by.text('Traits Working!!!'))).toBeVisible();
   });
 
-  it('should match elements with ancenstor (parent)', async () => {
+  it('should match elements with ancestor (parent)', async () => {
     await expect(element(by.id('Grandson883').withAncestor(by.id('Son883')))).toExist();
     await expect(element(by.id('Son883').withAncestor(by.id('Grandson883')))).toNotExist();
     await expect(element(by.id('Grandson883').withAncestor(by.id('Father883')))).toExist();
