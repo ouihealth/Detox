@@ -166,14 +166,14 @@ class ClearTextAction extends Action {
 class ScrollAmountAction extends Action {
   constructor(direction, amount, startScrollX = NaN, startScrollY = NaN) {
     super();
-    this._call = invoke.callDirectly(
-      GreyActions.actionForScrollInDirectionAmountXOriginStartPercentageYOriginStartPercentage(
-        direction,
-        amount,
-        startScrollX,
-        startScrollY
-      )
-    );
+    this._call = {
+      target: {
+        type: 'action',
+        value: 'action'
+      },
+      method: 'scroll',
+      args: [direction, amount]
+    };
   }
 }
 
@@ -181,7 +181,14 @@ class ScrollEdgeAction extends Action {
   constructor(edge) {
     super();
 
-    this._call = invoke.callDirectly(GreyActions.actionForScrollToContentEdge(edge));
+    this._call = {
+      target: {
+        type: 'action',
+        value: 'action'
+      },
+      method: 'scrollTo',
+      args: [edge]
+    };
   }
 }
 
@@ -392,7 +399,7 @@ class Element {
   }
   async scroll(amount, direction = 'down', startScrollX, startScrollY) {
     // override the user's element selection with an extended matcher that looks for UIScrollView children
-    this._selectElementWithMatcher(this._originalMatcher._extendToDescendantScrollViews());
+    // this._selectElementWithMatcher(this._originalMatcher._extendToDescendantScrollViews());
     return await new ActionInteraction(
       this._invocationManager,
       this,
@@ -401,7 +408,7 @@ class Element {
   }
   async scrollTo(edge) {
     // override the user's element selection with an extended matcher that looks for UIScrollView children
-    this._selectElementWithMatcher(this._originalMatcher._extendToDescendantScrollViews());
+    // this._selectElementWithMatcher(this._originalMatcher._extendToDescendantScrollViews());
     return await new ActionInteraction(this._invocationManager, this, new ScrollEdgeAction(edge)).execute();
   }
   async swipe(direction, speed = 'fast', percentage = 0) {

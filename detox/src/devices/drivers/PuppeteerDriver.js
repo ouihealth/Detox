@@ -157,6 +157,53 @@ class PuppeteerTestee {
         await element.tap();
       }
       return true;
+    } else if (action.method === 'scroll') {
+      const direction = action.args[0];
+      const pixels = action.args[1];
+
+      // TODO handle all options
+      let top = 0;
+      let left = 0;
+      if (direction === 'down') {
+        top = pixels;
+      } else if (direction === 'up') {
+        top = -pixels;
+      } else if (direction === 'right') {
+        left = pixels;
+      } else if (direction === 'left') {
+        left = -pixels;
+      }
+
+      await element.evaluate(
+        (el, scrollOptions) => {
+          console.log(el, scrollOptions);
+          el.scrollBy(scrollOptions);
+        },
+        { top, left }
+      );
+      return true;
+    } else if (action.method === 'scrollTo') {
+      const edge = action.args[0];
+
+      let top = 0;
+      let left = 0;
+      if (edge === 'bottom') {
+        top = 10000;
+      } else if (edge === 'top') {
+        top = -10000;
+      } else if (edge === 'left') {
+        left = -10000;
+      } else if (edge === 'right') {
+        left = 10000;
+      }
+
+      await element.evaluate(
+        (el, scrollOptions) => {
+          el.scrollBy(scrollOptions);
+        },
+        { top, left }
+      );
+      return true;
     } else if (action.method === 'swipe') {
       const direction = action.args[0];
       const speed = action.args[1];
@@ -198,7 +245,7 @@ class PuppeteerTestee {
     const isNotVisibleMatcher = matcher.method === 'option' && matcher.args[0].visible === false;
     const isExistsMatcher = matcher.method === 'option' && matcher.args[0].exists === true;
     const isNotExistsMatcher = matcher.method === 'option' && matcher.args[0].exists === false;
-    console.log('assertWithMatcher', { isExists, isVisibleMatcher, isExistsMatcher, isNotExistsMatcher });
+    console.log('assertWithMatcher', { isExists, isVisibleMatcher, isNotVisibleMatcher, isExistsMatcher, isNotExistsMatcher });
 
     let result = true;
     if (isVisibleMatcher || isNotVisibleMatcher) {
