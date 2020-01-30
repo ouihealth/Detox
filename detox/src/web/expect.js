@@ -41,7 +41,14 @@ class TapAction extends Action {
 class TapAtPointAction extends Action {
   constructor(value) {
     super();
-    this._call = invoke.callDirectly(GreyActions.actionForTapAtPoint(value));
+    this._call = {
+      target: {
+        type: 'action',
+        value: 'action'
+      },
+      method: 'tapAtPoint',
+      args: [value] // NB value is currently unused
+    };
   }
 }
 
@@ -49,9 +56,23 @@ class LongPressAction extends Action {
   constructor(duration) {
     super();
     if (typeof duration !== 'number') {
-      this._call = invoke.callDirectly(GreyActions.actionForLongPress());
+      this._call = {
+        target: {
+          type: 'action',
+          value: 'action'
+        },
+        method: 'longPress',
+        args: [700] // https://github.com/google/EarlGrey/blob/91c27bb8a15e723df974f620f7f576a30a6a7484/EarlGrey/Common/GREYConstants.m#L27
+      };
     } else {
-      this._call = invoke.callDirectly(GreyActions.actionForLongPressWithDuration(duration / 1000));
+      this._call = {
+        target: {
+          type: 'action',
+          value: 'action'
+        },
+        method: 'longPress',
+        args: [duration]
+      };
     }
   }
 }
@@ -59,7 +80,14 @@ class LongPressAction extends Action {
 class MultiTapAction extends Action {
   constructor(value) {
     super();
-    this._call = invoke.callDirectly(GreyActions.actionForMultipleTapsWithCount(value));
+    this._call = {
+      target: {
+        type: 'action',
+        value: 'action'
+      },
+      method: 'multiTap',
+      args: [value]
+    };
   }
 }
 

@@ -67,7 +67,7 @@ class PuppeteerTestee {
 
           return elements[indexArg ? indexArg.args[0] : 0];
         },
-        { timeout: timeoutArg ? timeoutArg.args[0].timeout : 50 },
+        { timeout: timeoutArg ? timeoutArg.args[0].timeout : 100 },
         { selectorArg, indexArg }
       );
       console.log(a);
@@ -91,6 +91,56 @@ class PuppeteerTestee {
       return true;
     } else if (action.method === 'tap') {
       await element.tap();
+      return true;
+    } else if (action.method === 'tapAtPoint') {
+      const box = await element.boundingBox();
+      const x = box.x + action.args[0].x;
+      const y = box.y + action.args[0].y;
+      await page.touchscreen.tap(x, y);
+      return true;
+    } else if (action.method === 'longPress') {
+      await element.evaluate(
+        (el, { duration }) => {
+          return new Promise((resolve) => {
+            const boundingBox = el.getBoundingClientRect();
+            const pageX = boundingBox.x + boundingBox.width / 2;
+            const pageY = boundingBox.y + boundingBox.height / 2;
+            const touch = new Touch({
+              identifier: Date.now(),
+              target: document,
+              pageX: 600,
+              pageY: 85
+            });
+            const start = new TouchEvent('touchstart', {
+              cancelable: true,
+              bubbles: true,
+              touches: [touch],
+              targetTouches: [],
+              changedTouches: [touch]
+            });
+            const end = new TouchEvent('touchend', {
+              cancelable: true,
+              bubbles: true,
+              touches: [touch],
+              targetTouches: [],
+              changedTouches: [touch]
+            });
+
+            el.dispatchEvent(start);
+
+            setTimeout(() => {
+              el.dispatchEvent(end);
+              resolve();
+            }, duration);
+          });
+        },
+        { duration: action.args[0] }
+      );
+      return true;
+    } else if (action.method === 'multiTap') {
+      for (let i = 0; i < action.args[0]; i++) {
+        await element.tap();
+      }
       return true;
     } else if (action.method === 'swipe') {
       const direction = action.args[0];
@@ -123,7 +173,7 @@ class PuppeteerTestee {
     //   console.log(el, action);
     // });
 
-    return false;
+    throw new Error('action not performed: ' + JSON.stringify(action));
   }
 
   async assertWithMatcher(element, matcher) {
@@ -152,6 +202,13 @@ class PuppeteerTestee {
       if (isNotExistsMatcher && isExists) {
         result = false;
       }
+    }
+
+    if (matcher.method === 'selector') {
+      result = !!(await element.evaluate((el, selector) => {
+        const iterator = document.evaluate(`//*${selector}`, el);
+        return iterator.iterateNext();
+      }, matcher.args[0]));
     }
 
     if (!result) throw new Error('assertion failed');
