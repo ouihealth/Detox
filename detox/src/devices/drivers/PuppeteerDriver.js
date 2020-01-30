@@ -267,10 +267,10 @@ class PuppeteerTestee {
     }
 
     if (matcher.method === 'selector') {
-      result = !!(await element.evaluate((el, selector) => {
+      result = await element.evaluate((el, selector) => {
         const iterator = document.evaluate(`//*${selector}`, el);
-        return iterator.iterateNext();
-      }, matcher.args[0]));
+        return !!iterator.iterateNext();
+      }, matcher.args[0]);
     }
 
     if (!result) throw new Error('assertion failed');
