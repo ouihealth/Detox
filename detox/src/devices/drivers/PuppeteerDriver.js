@@ -13,7 +13,7 @@ const AppleSimUtils = require('../ios/AppleSimUtils');
 const temporaryPath = require('../../artifacts/utils/temporaryPath');
 const SimulatorLogPlugin = require('../../artifacts/log/ios/SimulatorLogPlugin');
 const PuppeteerScreenshotPlugin = require('../../artifacts/screenshot/PuppeteerScreenshotPlugin');
-const SimulatorRecordVideoPlugin = require('../../artifacts/video/SimulatorRecordVideoPlugin');
+const PuppeteerRecordVideoPlugin = require('../../artifacts/video/PuppeteerRecordVideoPlugin');
 const SimulatorInstrumentsPlugin = require('../../artifacts/instruments/ios/SimulatorInstrumentsPlugin');
 const WebExpect = require('../../web/expect');
 
@@ -399,16 +399,10 @@ class PuppeteerDriver extends DeviceDriverBase {
   declareArtifactPlugins() {
     debug('declareArtifactPlugins');
     return {
+      // instruments: (api) => new SimulatorInstrumentsPlugin({ api, client }),
+      // log: (api) => new SimulatorLogPlugin({ api, appleSimUtils }),
       screenshot: (api) => new PuppeteerScreenshotPlugin({ api, driver: this }),
-    };
-    const appleSimUtils = this.applesimutils;
-    const client = this.client;
-
-    return {
-      instruments: (api) => new SimulatorInstrumentsPlugin({ api, client }),
-      log: (api) => new SimulatorLogPlugin({ api, appleSimUtils }),
-      screenshot: (api) => new PuppeteerScreenshotPlugin({ api, driver: this }),
-      video: (api) => new SimulatorRecordVideoPlugin({ api, appleSimUtils })
+      video: (api) => new PuppeteerRecordVideoPlugin({ api, driver: this })
     };
   }
 
@@ -457,6 +451,23 @@ class PuppeteerDriver extends DeviceDriverBase {
     //   throw new Error(`${detoxFrameworkPath} could not be found, this means either you changed a version of Xcode or Detox postinstall script was unsuccessful.
     //   To attempt a fix try running 'detox clean-framework-cache && detox build-framework-cache'`);
     // }
+  }
+
+  async recordVideo(deviceId) {
+    await page.evaluate(filename=>{
+      window.postMessage({ type: 'REC_START' }, '*')
+    })
+  }
+
+  async stopVideo(deviceId) {
+    const exportname = `puppet${Math.random()}.webm`
+    await page.evaluate(filename=>{
+      window.postMessage({type: 'SET_EXPORT_PATH', filename: filename}, '*')
+      window.postMessage({type: 'REC_STOP'}, '*')
+    }, exportname)
+    await page.waitForSelector('html.downloadComplete');
+    // TODO use generic chrome downloads path
+    return path.join('/Users/awinograd/Downloads', exportname);
   }
 
   async cleanup(deviceId, bundleId) {
@@ -513,15 +524,30 @@ class PuppeteerDriver extends DeviceDriverBase {
   async uninstallApp(deviceId, bundleId) {
     debug('uninstallApp', { deviceId, bundleId });
     await this.emitter.emit('beforeUninstallApp', { deviceId, bundleId });
-    if (browser) browser.close();
+    if (browser) await browser.close();
     // await this.applesimutils.uninstall(deviceId, bundleId);
   }
 
   async launchApp(deviceId, bundleId, launchArgs, languageAndLocale) {
     debug('launchApp', { deviceId, bundleId, launchArgs, languageAndLocale });
     await this.emitter.emit('beforeLaunchApp', { bundleId, deviceId, launchArgs });
-    browser = await puppeteer.launch({ devtools: true, headless: false });
-    console.log('override', launchArgs.detoxURLOverride);
+
+    const extensionDirectory = "/Users/awinograd/programming/puppetcam";
+    browser = await puppeteer.launch({
+      devtools: false,
+      headless: false,
+      defaultViewport:  { width: 1280, height: 720 },
+      // ignoreDefaultArgs: ['--enable-automation'], // works, but shows "not your default browser toolbar"
+      args: [
+        '--enable-usermedia-screen-capturing',
+        '--allow-http-screen-capture',
+        '--allow-file-access-from-files',
+        '--auto-select-desktop-capture-source=puppetcam',
+        '--load-extension=' + extensionDirectory,
+        '--disable-extensions-except=' + extensionDirectory,
+      ]
+    });
+
     const url = launchArgs.detoxURLOverride || this.deviceConfig.baseUrl;
     if (url) {
       page = (await browser.pages())[0];
