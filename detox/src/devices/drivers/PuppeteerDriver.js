@@ -362,6 +362,9 @@ class PuppeteerTestee {
         if (action.type === 'loginSuccess') {
           return;
         } else if (action.type === 'deliverPayload') {
+          if (action.params && action.params.url) {
+            await page.goto(action.params.url, { waitUntil: 'networkidle2' });
+          }
           await sendResponse({ type: 'deliverPayloadDone', messageId: action.messageId });
         } else if (action.type === 'currentStatus') {
           await sendResponse({ type: 'currentStatusResult', params: { resources: [] } });
@@ -522,7 +525,7 @@ class PuppeteerDriver extends DeviceDriverBase {
     const url = launchArgs.detoxURLOverride || this.deviceConfig.baseUrl;
     if (url) {
       page = (await browser.pages())[0];
-      await page.goto(url);
+      await page.goto(url, { waitUntil: 'networkidle2' });
     }
     // const pid = await this.applesimutils.launch(deviceId, bundleId, launchArgs, languageAndLocale);
     const pid = 'PID';
@@ -725,7 +728,7 @@ class PuppeteerDriver extends DeviceDriverBase {
     const url = this.deviceConfig.baseUrl;
     if (url) {
       page = (await browser.pages())[0];
-      await page.goto(url);
+      await page.goto(url, { waitUntil: 'networkidle2' });
     }
   }
 }
