@@ -379,7 +379,7 @@ class PuppeteerTestee {
       } catch (error) {
         await sendResponse({ type: 'error', messageId: messageId, params: { error } });
         console.error(error);
-        browser.close();
+        await browser.close();
       }
     });
 
@@ -460,8 +460,8 @@ class PuppeteerDriver extends DeviceDriverBase {
   }
 
   async cleanup(deviceId, bundleId) {
-    debug('TODO cleanup', { deviceId, bundleId });
-    if (browser) browser.close();
+    debug('TODO cleanup', { deviceId, bundleId, browser: !!browser });
+    if (browser) await browser.close();
     // await this.deviceRegistry.disposeDevice(deviceId);
     await super.cleanup(deviceId, bundleId);
   }
@@ -537,7 +537,7 @@ class PuppeteerDriver extends DeviceDriverBase {
   async terminate(deviceId, bundleId) {
     debug('terminate', { deviceId, bundleId });
     await this.emitter.emit('beforeTerminateApp', { deviceId, bundleId });
-    if (browser) browser.close();
+    if (browser) await browser.close();
     // await this.applesimutils.terminate(deviceId, bundleId);
     await this.emitter.emit('terminateApp', { deviceId, bundleId });
   }
@@ -604,7 +604,9 @@ class PuppeteerDriver extends DeviceDriverBase {
   }
 
   async waitForBackground() {
-    return await this.client.waitForBackground();
+    debug('TODO waitForBackground');
+    // return await this.client.waitForBackground();
+    return Promise.resolve('');
   }
 
   async takeScreenshot(udid, screenshotName) {
