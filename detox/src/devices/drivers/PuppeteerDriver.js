@@ -10,8 +10,9 @@ const GREYConfigurationDetox = require('../../ios/earlgreyapi/GREYConfigurationD
 const EarlyGreyImpl = require('../../ios/earlgreyapi/EarlGreyImpl');
 const AppleSimUtils = require('../ios/AppleSimUtils');
 
+const temporaryPath = require('../../artifacts/utils/temporaryPath');
 const SimulatorLogPlugin = require('../../artifacts/log/ios/SimulatorLogPlugin');
-const SimulatorScreenshotPlugin = require('../../artifacts/screenshot/SimulatorScreenshotPlugin');
+const PuppeteerScreenshotPlugin = require('../../artifacts/screenshot/PuppeteerScreenshotPlugin');
 const SimulatorRecordVideoPlugin = require('../../artifacts/video/SimulatorRecordVideoPlugin');
 const SimulatorInstrumentsPlugin = require('../../artifacts/instruments/ios/SimulatorInstrumentsPlugin');
 const WebExpect = require('../../web/expect');
@@ -394,14 +395,16 @@ class PuppeteerDriver extends DeviceDriverBase {
 
   declareArtifactPlugins() {
     debug('declareArtifactPlugins');
-    return {};
+    return {
+      screenshot: (api) => new PuppeteerScreenshotPlugin({ api, driver: this }),
+    };
     const appleSimUtils = this.applesimutils;
     const client = this.client;
 
     return {
       instruments: (api) => new SimulatorInstrumentsPlugin({ api, client }),
       log: (api) => new SimulatorLogPlugin({ api, appleSimUtils }),
-      screenshot: (api) => new SimulatorScreenshotPlugin({ api, appleSimUtils }),
+      screenshot: (api) => new PuppeteerScreenshotPlugin({ api, driver: this }),
       video: (api) => new SimulatorRecordVideoPlugin({ api, appleSimUtils })
     };
   }
@@ -557,7 +560,7 @@ class PuppeteerDriver extends DeviceDriverBase {
   }
 
   async sendToHome(deviceId) {
-    await this.applesimutils.sendToHome(deviceId);
+    await page.goto('https://google.com')
   }
 
   async shutdown(deviceId) {
@@ -603,7 +606,7 @@ class PuppeteerDriver extends DeviceDriverBase {
 
   async takeScreenshot(udid, screenshotName) {
     const tempPath = await temporaryPath.for.png();
-    await this.applesimutils.takeScreenshot(udid, tempPath);
+    await page.screenshot({ path: tempPath });
 
     await this.emitter.emit('createExternalArtifact', {
       pluginId: 'screenshot',
