@@ -280,12 +280,11 @@ class PuppeteerTestee {
     return result;
   }
 
-  async invoke(params, logLevel = console.log) {
-    logLevel('invoke', JSON.stringify(params, null, 2));
+  async invoke(params) {
+    debugTestee('invoke', JSON.stringify(params, null, 2));
     const promises = params.args.map((arg) => {
-      logLevel('arg', arg);
+      debugTestee('arg', arg);
       if (arg.type === 'Invocation') {
-        console.log('going to invoke, be careful');
         return this.invoke(arg.value);
       }
       return arg;
@@ -295,7 +294,7 @@ class PuppeteerTestee {
     logLevel('call', params, args);
     if (params.target === 'this' || params.target.type === 'this') {
       const result = await this[params.method](...args);
-      logLevel('result?', params.method, !!result);
+      debugTestee('result?', params.method, !!result);
       return result;
     }
 
