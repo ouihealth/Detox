@@ -382,6 +382,7 @@ class PuppeteerTestee {
         await sendResponse({ type: 'error', messageId: messageId, params: { error } });
         console.error(error);
         await browser.close();
+        browser = null;
       }
     });
 
@@ -463,18 +464,31 @@ class PuppeteerDriver extends DeviceDriverBase {
 
   async stopVideo(deviceId) {
     const exportname = `puppet${Math.random()}.webm`
+    console.log("stopVideo");
     await page.evaluate(filename=>{
       window.postMessage({type: 'SET_EXPORT_PATH', filename: filename}, '*')
       window.postMessage({type: 'REC_STOP'}, '*')
     }, exportname)
-    await page.waitForSelector('html.downloadComplete');
+    // try{
+    // console.log("waitForSelector");
+      await page.waitForSelector('html.downloadComplete', { timeout: 5000 });
+    // } catch (e) {
+      // noop. This waitFor could fail if the page navigates away before
+      // detecting the download
+    // }
+    // console.log("after DL");
     // TODO use generic chrome downloads path
     return path.join('/Users/awinograd/Downloads', exportname);
   }
 
   async cleanup(deviceId, bundleId) {
     debug('TODO cleanup', { deviceId, bundleId, browser: !!browser });
-    if (browser) await browser.close();
+    // await sleep(100000);
+
+    if (browser) {
+      await browser.close();
+      browser = null;
+    }
     // await this.deviceRegistry.disposeDevice(deviceId);
     await super.cleanup(deviceId, bundleId);
   }
@@ -526,17 +540,19 @@ class PuppeteerDriver extends DeviceDriverBase {
   async uninstallApp(deviceId, bundleId) {
     debug('uninstallApp', { deviceId, bundleId });
     await this.emitter.emit('beforeUninstallApp', { deviceId, bundleId });
-    if (browser) await browser.close();
-    // await this.applesimutils.uninstall(deviceId, bundleId);
+    if (browser) {
+      await browser.close();
+      browser = null;
+    }
   }
 
   async launchApp(deviceId, bundleId, launchArgs, languageAndLocale) {
-    debug('launchApp', { deviceId, bundleId, launchArgs, languageAndLocale });
+    debug('launchApp', { browser: !!browser, deviceId, bundleId, launchArgs, languageAndLocale });
     await this.emitter.emit('beforeLaunchApp', { bundleId, deviceId, launchArgs });
 
     const extensionDirectory = "/Users/awinograd/programming/puppetcam";
-    browser = await puppeteer.launch({
-      devtools: false,
+    browser = browser || await puppeteer.launch({
+      devtools: true,
       headless: false,
       defaultViewport:  { width: 1280, height: 720 },
       // ignoreDefaultArgs: ['--enable-automation'], // works, but shows "not your default browser toolbar"
@@ -565,7 +581,10 @@ class PuppeteerDriver extends DeviceDriverBase {
   async terminate(deviceId, bundleId) {
     debug('terminate', { deviceId, bundleId });
     await this.emitter.emit('beforeTerminateApp', { deviceId, bundleId });
-    if (browser) await browser.close();
+    if (browser) {
+      await browser.close();
+      browser = null;
+    }
     // await this.applesimutils.terminate(deviceId, bundleId);
     await this.emitter.emit('terminateApp', { deviceId, bundleId });
   }
