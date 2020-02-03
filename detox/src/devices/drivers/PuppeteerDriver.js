@@ -49,9 +49,11 @@ class PuppeteerTestee {
     debugTestee('selectElementWithMatcher', JSON.stringify(args, null, 2));
     const selectorArg = args.find((a) => a.method === 'selector');
     const timeoutArg = args.find((a) => a.method === 'option' && typeof a.args[0].timeout === 'number');
+    const visibleArg = args.find((a) => a.method === 'option' && typeof a.args[0].visible === 'boolean');
     const indexArg = args.find((a) => a.method === 'index');
+    let result = null;
     try {
-      return await page.waitFor(
+      result = await page.waitFor(
         ({ selectorArg, indexArg }) => {
           const xpath = selectorArg.args[0];
           const isContainMatcher = xpath.includes('contains(');
@@ -75,10 +77,19 @@ class PuppeteerTestee {
         { timeout: timeoutArg ? timeoutArg.args[0].timeout : 100 },
         { selectorArg, indexArg }
       );
+      if (visibleArg && visibleArg.args[0].visible === false) {
+        const isVisible = await result.isIntersectingViewport();
+        if (isVisible) throw new Error(`Element should not be visible: ${selectorArg.args[0]}`);
+      }
     } catch (e) {
+      if (visibleArg) {
+        const shouldBeVisible = visibleArg.args[0].visible === true;
+        if (shouldBeVisible) throw e;
+      }
       console.warn(e);
-      return null;
     }
+
+    return result;
   }
 
   async getElementHandle(...args) {
