@@ -229,7 +229,6 @@ class Interaction {
   }
 
   async execute() {
-    console.log('Execute interaction', JSON.stringify(this._call, null, 2));
     //if (!this._call) throw new Error(`Interaction.execute cannot find a valid _call, got ${typeof this._call}`);
     await this._invocationManager.execute(this._call);
   }
@@ -254,7 +253,6 @@ class ActionInteraction extends Interaction {
 class MatcherAssertionInteraction extends Interaction {
   constructor(invocationManager, element, matcher) {
     super(invocationManager);
-    console.log(element, matcher);
 
     this._call = {
       target: 'this',
@@ -299,8 +297,6 @@ class WaitForInteraction extends Interaction {
       args: [{ timeout }]
     });
     this._call = call;
-    // console.log(callThunk(this._element));
-    // console.trace(this._element);
     // this._call = GreyCondition.waitWithTimeout(invoke.callDirectly(_conditionCall), timeout / 1000);
     await this.execute();
   }

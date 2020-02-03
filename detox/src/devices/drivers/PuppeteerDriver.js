@@ -31,23 +31,27 @@ function debug(label, ...args) {
   return;
   console.log(`PuppeteerDriver.${label}`, ...args);
 }
+function debugTestee(label, ...args) {
+  return;
+  console.log(`PuppeteerTestee.${label}`, ...args);
+}
 
 let browser, page;
 let urlBlacklist = [];
 class PuppeteerTestee {
   constructor(config) {
-    console.log('PuppeteerTestee.constructor', config);
+    debugTestee('PuppeteerTestee.constructor', config);
     this.configuration = config.client.configuration;
     this.client = new Client(this.configuration);
   }
 
   async selectElementWithMatcher(...args) {
-    console.log('selectElementWithMatcher', JSON.stringify(args, null, 2));
+    debugTestee('selectElementWithMatcher', JSON.stringify(args, null, 2));
     const selectorArg = args.find((a) => a.method === 'selector');
     const timeoutArg = args.find((a) => a.method === 'option' && typeof a.args[0].timeout === 'number');
     const indexArg = args.find((a) => a.method === 'index');
     try {
-      const a = await page.waitFor(
+      return await page.waitFor(
         ({ selectorArg, indexArg }) => {
           const xpath = selectorArg.args[0];
           const isContainMatcher = xpath.includes('contains(');
@@ -71,8 +75,6 @@ class PuppeteerTestee {
         { timeout: timeoutArg ? timeoutArg.args[0].timeout : 100 },
         { selectorArg, indexArg }
       );
-      console.log(a);
-      return a;
     } catch (e) {
       console.warn(e);
       return null;
@@ -80,12 +82,12 @@ class PuppeteerTestee {
   }
 
   async getElementHandle(...args) {
-    console.log('getElementHandle', args);
+    debugTestee('getElementHandle', args);
     return await page.waitForSelector(...args);
   }
 
   async performAction(element, action) {
-    console.log('performAction', action);
+    debugTestee('performAction', action);
     if (action.method === 'replaceText') {
       await element.click();
       await page.keyboard.type(action.args[0]);
@@ -240,13 +242,13 @@ class PuppeteerTestee {
   }
 
   async assertWithMatcher(element, matcher) {
-    console.log('assertWithMatcher', matcher);
+    debugTestee('assertWithMatcher', matcher);
     const isExists = !!element;
     const isVisibleMatcher = matcher.method === 'option' && matcher.args[0].visible === true;
     const isNotVisibleMatcher = matcher.method === 'option' && matcher.args[0].visible === false;
     const isExistsMatcher = matcher.method === 'option' && matcher.args[0].exists === true;
     const isNotExistsMatcher = matcher.method === 'option' && matcher.args[0].exists === false;
-    console.log('assertWithMatcher', { isExists, isVisibleMatcher, isNotVisibleMatcher, isExistsMatcher, isNotExistsMatcher });
+    debugTestee('assertWithMatcher', { isExists, isVisibleMatcher, isNotVisibleMatcher, isExistsMatcher, isNotExistsMatcher });
 
     let result = true;
     if (isVisibleMatcher || isNotVisibleMatcher) {
@@ -342,8 +344,8 @@ class PuppeteerTestee {
         });
       });
 
-      const sendResponse = (response) => {
-        console.log('sendResponse');
+      const sendResponse = async (response) => {
+        debugTestee('sendResponse', response);
         actionComplete = true;
         const sendResponsePromise = Object.keys(inflightRequests).length === 0 ? Promise.resolve() : networkSettledPromise;
         return sendResponsePromise.then(() => {
@@ -355,7 +357,7 @@ class PuppeteerTestee {
       try {
         const action = JSON.parse(str);
         messageId = action.messageId;
-        console.log('PuppeteerTestee.message', JSON.stringify(action, null, 2));
+        debugTestee('PuppeteerTestee.message', JSON.stringify(action, null, 2));
         if (!action.type) {
           return;
         }
