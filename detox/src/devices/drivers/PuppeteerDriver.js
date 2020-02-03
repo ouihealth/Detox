@@ -74,7 +74,7 @@ class PuppeteerTestee {
 
           return elements[indexArg ? indexArg.args[0] : 0];
         },
-        { timeout: timeoutArg ? timeoutArg.args[0].timeout : 100 },
+        { timeout: timeoutArg ? timeoutArg.args[0].timeout : 500 },
         { selectorArg, indexArg }
       );
       if (visibleArg && visibleArg.args[0].visible === false) {
@@ -321,10 +321,21 @@ class PuppeteerTestee {
     //   console.log('close');
     // });
 
+    const client = await page.target().createCDPSession();
+    await client.send('Animation.enable');
     await this.client.ws.open();
     this.client.ws.ws.on('message', async (str) => {
       let actionComplete = false;
+
+      /* Network synchronization */
       const inflightRequests = {};
+      let _onRequest, _onRequestFailed, _onRequestFinished;
+
+      function removeNetworkListeners() {
+        page.removeListener('request', _onRequest);
+        page.removeListener('request', _onRequestFinished);
+        page.removeListener('request', _onRequestFailed);
+      }
 
       const networkSettledPromise = new Promise((resolve) => {
         function addInflightRequest(request) {
@@ -333,10 +344,12 @@ class PuppeteerTestee {
 
         function removeInflightRequest(request) {
           delete inflightRequests[request.uid];
-          if (actionComplete && Object.keys(inflightRequests).length === 0) resolve();
+          if (actionComplete && Object.keys(inflightRequests).length === 0) {
+            resolve();
+          }
         }
 
-        page.on('request', (request) => {
+        _onRequest = (request) => {
           request.uid = Math.random();
           const url = request.url();
           const isIgnored = urlBlacklist.some((candidate) => {
@@ -345,22 +358,61 @@ class PuppeteerTestee {
           if (!isIgnored) {
             addInflightRequest(request);
           }
-        });
-        page.on('requestfinished', (request) => {
+        };
+        _onRequestFinished = (request) => {
           removeInflightRequest(request);
-        });
-        page.on('requestfailed', (request) => {
+        };
+        _onRequestFailed = (request) => {
           removeInflightRequest(request);
-        });
+        };
+        //  in sendResponse
+        page.on('request', _onRequest);
+        page.on('requestfinished', _onRequestFinished);
+        page.on('requestfailed', _onRequestFailed);
       });
+
+      /* end network synchronization */
+
+
+      /* animation synchronization */
+      const animationTimeById = {}; 
+      client.on('Animation.animationStarted', ({ animation }) => {
+        // console.log('Animation started id=', animation.id)
+        // console.log(animation)
+        animationTimeById[animation.id] = animation.source.duration;
+      });
+      client.on('Animation.animationCancelled', ({ id }) => {
+        delete animationTimeById[id];
+      });
+      /* end animation synchronization */
+
 
       const sendResponse = async (response) => {
         debugTestee('sendResponse', response);
         actionComplete = true;
         const sendResponsePromise = Object.keys(inflightRequests).length === 0 ? Promise.resolve() : networkSettledPromise;
-        return sendResponsePromise.then(() => {
-          this.client.ws.ws.send(JSON.stringify(response));
+
+        const animationsSettledPromise = new Promise(resolve => {
+          const interval = setInterval(() => {
+            Object.entries(animationTimeById).forEach(async ([id, duration]) => {
+              const result = await client.send('Animation.getCurrentTime', {
+                'id': id,
+              });
+              if (result.currentTime === null || result.currentTime > duration) {
+                delete animationTimeById[id];
+              }
+            });
+            if (Object.keys(animationTimeById).length === 0) {
+              clearInterval(interval);
+              resolve();
+            }
+          }, 100);
         });
+
+        return sendResponsePromise
+          .then(() => removeNetworkListeners())
+          .then(() => animationsSettledPromise)
+          .then(() => this.client.ws.ws.send(JSON.stringify(response)));
       };
 
       let messageId;
