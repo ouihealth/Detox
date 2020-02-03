@@ -84,7 +84,7 @@ class PuppeteerTestee {
     } catch (e) {
       if (visibleArg) {
         const shouldBeVisible = visibleArg.args[0].visible === true;
-        if (shouldBeVisible) throw e;
+        if (shouldBeVisible) throw new Error(e.toString() + selectorArg.args[0]);
       }
       console.warn(e);
     }
