@@ -36,6 +36,7 @@ function debugTestee(label, ...args) {
   console.log(`PuppeteerTestee.${label}`, ...args);
 }
 
+let enableSynchronization = true;
 let browser, page;
 let urlBlacklist = [];
 class PuppeteerTestee {
@@ -391,7 +392,9 @@ class PuppeteerTestee {
       const sendResponse = async (response) => {
         debugTestee('sendResponse', response);
         actionComplete = true;
-        const sendResponsePromise = Object.keys(inflightRequests).length === 0 ? Promise.resolve() : networkSettledPromise;
+        const sendResponsePromise = enableSynchronization && Object.keys(inflightRequests).length > 0
+          ? networkSettledPromise
+          : Promise.resolve();
 
         // const animationsSettledPromise = new Promise(resolve => {
         //   const interval = setInterval(() => {
@@ -483,21 +486,16 @@ class PuppeteerDriver extends DeviceDriverBase {
   async setURLBlacklist(urlList) {
     debug('TODO setURLBlacklist should go through client', urlList);
     urlBlacklist = urlList;
-    // await this.client.execute(
-    //   GREYConfigurationApi.setValueForConfigKey(
-    //     invoke.callDirectly(GREYConfigurationApi.sharedInstance()),
-    //     urlList,
-    //     'GREYConfigKeyURLBlacklistRegex'
-    //   )
-    // );
   }
 
   async enableSynchronization() {
-    await this.client.execute(GREYConfigurationDetox.enableSynchronization(invoke.callDirectly(GREYConfigurationApi.sharedInstance())));
+    debug('TODO enableSynchronization should go through client');
+    enableSynchronization = true;
   }
 
   async disableSynchronization() {
-    await this.client.execute(GREYConfigurationDetox.disableSynchronization(invoke.callDirectly(GREYConfigurationApi.sharedInstance())));
+    debug('TODO disableSynchronization should go through client');
+    enableSynchronization = false;
   }
 
   async shake(deviceId) {
