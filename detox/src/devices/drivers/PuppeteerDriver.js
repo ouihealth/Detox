@@ -656,26 +656,6 @@ class PuppeteerDriver extends DeviceDriverBase {
     await this.emitter.emit('terminateApp', { deviceId, bundleId });
   }
 
-  async setBiometricEnrollment(deviceId, yesOrNo) {
-    await this.applesimutils.setBiometricEnrollment(deviceId, yesOrNo);
-  }
-
-  async matchFace(deviceId) {
-    await this.applesimutils.matchBiometric(deviceId, 'Face');
-  }
-
-  async unmatchFace(deviceId) {
-    await this.applesimutils.unmatchBiometric(deviceId, 'Face');
-  }
-
-  async matchFinger(deviceId) {
-    await this.applesimutils.matchBiometric(deviceId, 'Finger');
-  }
-
-  async unmatchFinger(deviceId) {
-    await this.applesimutils.unmatchBiometric(deviceId, 'Finger');
-  }
-
   async sendToHome(deviceId) {
     await page.goto('https://google.com')
   }
@@ -686,8 +666,8 @@ class PuppeteerDriver extends DeviceDriverBase {
     await this.emitter.emit('shutdownDevice', { deviceId });
   }
 
-  async setLocation(deviceId, lat, lon) {
-    await this.applesimutils.setLocation(deviceId, lat, lon);
+  async setLocation(deviceId, latitude, longitude) {
+    await page.setGeolocation({ latitude: latitude.toString(), longitude: longitude.toString() });
   }
 
   async setPermissions(deviceId, bundleId, permissions) {

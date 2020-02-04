@@ -13,7 +13,7 @@ async function isFbsimctlInstalled() {
 
 describe(':ios: location', () => {
   it('Location should be unavailable', async () => {
-    if (!await isFbsimctlInstalled()) {
+    if (device.getPlatform() !== 'web' && !await isFbsimctlInstalled()) {
       return;
     }
     await device.relaunchApp({ permissions: { location: 'never' } });
@@ -23,7 +23,7 @@ describe(':ios: location', () => {
   });
 
   it('Should receive location (20,20)', async () => {
-    if (!await isFbsimctlInstalled()) {
+    if (device.getPlatform() !== 'web' && !await isFbsimctlInstalled()) {
       return;
     }
     await device.relaunchApp({ permissions: { location: 'always' } });
