@@ -26,6 +26,7 @@ class Mockserver {
             console.log('Mock server', `GET delayed response, will reply in ${req.params.delay}ms`);
             setTimeout(() => {
               console.log('Mock server', `GET delayed response, responding now`);
+              res.header("Access-Control-Allow-Origin", "*");
               res.json({message: `Response was delayed by ${req.params.delay}ms`});
             }, req.params.delay);
           });

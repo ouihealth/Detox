@@ -7,7 +7,7 @@ import {
 } from 'react-native';
 
 // TODO Use 10.0.3.2 for Genymotion
-const HOST = Platform.OS === 'ios' ? 'localhost': '10.0.2.2';
+const HOST = Platform.OS === 'ios' || Platform.OS === 'web' ? 'localhost': '10.0.2.2';
 
 export default class NetworkScreen extends Component {
 
