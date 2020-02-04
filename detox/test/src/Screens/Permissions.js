@@ -2,6 +2,7 @@ import React, {Component} from 'react';
 import {
   View,
   Text,
+  Platform,
   NativeModules
 } from 'react-native';
 
@@ -15,10 +16,23 @@ export default class Permissions extends Component {
   }
 
   async getAuthorizationStatus() {
-    const status = await CalendarManager.getAuthorizationStatus();
-    this.setState({
-      status: status
-    });
+    if (Platform.OS === 'web') {
+      try {
+        await navigator.mediaDevices.getUserMedia({ video: true })
+        this.setState({
+          status: 'granted'
+        });
+      } catch (e) {
+        this.setState({
+          status: 'denied'
+        });
+      }
+    } else {
+      const status = await CalendarManager.getAuthorizationStatus();
+      this.setState({
+        status: status
+      });
+    }
   }
 
   render() {

@@ -630,6 +630,7 @@ class PuppeteerDriver extends DeviceDriverBase {
         '--disable-extensions-except=' + extensionDirectory,
       ]
     });
+    this._applyPermissions();
 
     const url = launchArgs.detoxURLOverride || this.deviceConfig.baseUrl;
     if (url) {
@@ -689,7 +690,41 @@ class PuppeteerDriver extends DeviceDriverBase {
   }
 
   async setPermissions(deviceId, bundleId, permissions) {
-    debug('TODO setPermissions', { deviceId, bundleId });
+    debug('setPermissions', { deviceId, bundleId, permissions });
+    const PERMISSIONS_LOOKUP = {
+      // calendar: '',
+      camera: 'camera',
+      // contacts: '',
+      // faceid: '',
+      // health: '',
+      // homekit: '',
+      location: 'geolocation',
+      // medialibrary: '',
+      microphone: 'microphone',
+      // motion: '',
+      notifications: ['notifications', 'push'],
+      // photos: '',
+      // reminders: '',
+      // siri: '',
+      // speech: '',
+    }
+    this.requestedPermissions = [];
+    const requestedPermissions = Object.entries(permissions).filter(([key, value]) => {
+      return !['NO', 'unset', 'never', ''].includes(value || '');
+    })
+      .map(([key]) => PERMISSIONS_LOOKUP[key])
+      .filter(equivalentPermission => !!equivalentPermission)
+      .flat();
+    this.requestedPermissions = requestedPermissions;
+  }
+
+  async _applyPermissions(deviceId, bundleId) {
+    if (browser && this.requestedPermissions) {
+      const context = browser.defaultBrowserContext();
+      await context.clearPermissionOverrides();
+      console.log('grant', this.requestedPermissions);
+      await context.overridePermissions('http://localhost:19006', this.requestedPermissions)
+    }
   }
 
   async clearKeychain(deviceId) {

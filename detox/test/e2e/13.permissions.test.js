@@ -1,14 +1,16 @@
 describe(':ios: Permissions', () => {
 
   it('Permissions is granted', async () => {
-    await device.launchApp({permissions: {calendar: 'YES'}, newInstance: true});
+    const permissions = device.getPlatform() === 'web' ? { camera: 'YES' } : { calendar: 'YES' };
+    await device.launchApp({permissions: permissions, newInstance: true});
     await element(by.text('Permissions')).tap();
-    await expect(element(by.text('granted'))).toBeVisible();
+    await waitFor(element(by.text('granted'))).toBeVisible().withTimeout(2000);
   });
 
   it('Permissions denied', async () => {
-    await device.launchApp({permissions: {calendar: 'NO'}, newInstance: true});
+    const permissions = device.getPlatform() === 'web' ? { camera: 'NO' } : { calendar: 'NO' };
+    await device.launchApp({permissions: permissions, newInstance: true});
     await element(by.text('Permissions')).tap();
-    await expect(element(by.text('denied'))).toBeVisible();
+    await waitFor(element(by.text('denied'))).toBeVisible().withTimeout(2000);
   });
 });
