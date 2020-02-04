@@ -667,7 +667,10 @@ class PuppeteerDriver extends DeviceDriverBase {
   }
 
   async setLocation(deviceId, latitude, longitude) {
-    await page.setGeolocation({ latitude: latitude.toString(), longitude: longitude.toString() });
+    await page.setGeolocation({
+      latitude: Number.parseFloat(latitude),
+      longitude: Number.parseFloat(longitude),
+    });
   }
 
   async setPermissions(deviceId, bundleId, permissions) {
