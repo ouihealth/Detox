@@ -10,7 +10,7 @@
     "postinstall": "node scripts/postinstall.js",
     "packager": "react-native start",
     "detox-server": "detox run-server",
-    "e2e:web": "detox test --configuration web.puppeteer --debug-synchronization",
+    "e2e:web": "detox test --configuration web.puppeteer --debug-synchronization --record-videos all",
     "e2e:ios": "detox test --configuration ios.sim.release --debug-synchronization",
     "e2e:jest-circus:ios": "detox test --configuration ios.sim.release --debug-synchronization -o e2e/config-circus.json",
     "e2e:ios-ci": "detox test --configuration ios.sim.release --workers 3 --debug-synchronization --take-screenshots all --record-logs all -- --coverage",

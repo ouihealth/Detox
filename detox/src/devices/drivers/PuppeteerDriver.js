@@ -613,10 +613,13 @@ class PuppeteerDriver extends DeviceDriverBase {
     await this.emitter.emit('beforeLaunchApp', { bundleId, deviceId, launchArgs });
 
     const extensionDirectory = "/Users/awinograd/programming/puppetcam";
+    const defaultViewport = this.deviceConfig && this.deviceConfig.defaultViewport
+      ? this.deviceConfig.defaultViewport
+      : { width: 1280, height: 720 };
     browser = browser || await puppeteer.launch({
-      devtools: true,
-      headless: false,
-      defaultViewport:  { width: 1280, height: 720 },
+      devtools: false,
+      headless: true,
+      defaultViewport:  launchArgs.viewport || defaultViewport,
       // ignoreDefaultArgs: ['--enable-automation'], // works, but shows "not your default browser toolbar"
       args: [
         '--enable-usermedia-screen-capturing',
