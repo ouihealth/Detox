@@ -1,4 +1,4 @@
-describe(':ios: User Notifications', () => {
+describe.skip(':ios: User Notifications', () => {
   it('Init from push notification', async () => {
     await device.launchApp({newInstance: true, userNotification: userNotificationPushTrigger});
     await expect(element(by.text('From push'))).toBeVisible();

@@ -1,3 +1,10 @@
+function sleep(ms) {
+  return new Promise((res) => {
+    setTimeout(res, ms);
+  });
+}
+
+
 describe('Sanity', () => {
   beforeEach(async () => {
     await device.reloadReactNative();

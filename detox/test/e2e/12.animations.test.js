@@ -1,6 +1,6 @@
 let _ = require('lodash');
 
-describe('Animations', () => {
+describe.skip('Animations', () => {
   beforeEach(async () => {
     await device.reloadReactNative();
     await element(by.text('Animations')).tap();
@@ -31,7 +31,7 @@ describe('Animations', () => {
     await element(by.id('UniqueId_AnimationsScreen_startButton')).tap();
   }
 
-  _.forEach(['JS', 'Native'], (driver) => {
+  _.forEach(['JS'], (driver) => {
     it(`should find element (driver: ${driver})`, async () => {
       await _startTest(driver);
       await expect(element(by.id('UniqueId_AnimationsScreen_afterAnimationText'))).toBeVisible();
