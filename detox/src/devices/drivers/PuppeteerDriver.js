@@ -346,8 +346,8 @@ class PuppeteerTestee {
 
       function removeNetworkListeners() {
         page.removeListener('request', _onRequest);
-        page.removeListener('request', _onRequestFinished);
-        page.removeListener('request', _onRequestFailed);
+        page.removeListener('requestfinished', _onRequestFinished);
+        page.removeListener('requestfailed', _onRequestFailed);
       }
 
       const networkSettledPromise = new Promise((resolve) => {
