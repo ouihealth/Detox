@@ -50,6 +50,7 @@
     "configurations": {
       "web.puppeteer": {
         "binaryPath": "/http://localhost:19006/",
+        "defaultViewport": { "width": 375, "height": 812 },
         "type": "web.puppeteer",
         "name": "puppeteer"
       },

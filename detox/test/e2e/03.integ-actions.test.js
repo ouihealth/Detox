@@ -1,7 +1,7 @@
 const {scrollViewDriver} = require('./drivers/fs-scroll-driver');
 const {scrollingTextInputsDriver, scrollingTextsDriver} = require('./drivers/integ-actions-drivers');
 
-describe(':android: Integrative actions', () => {
+describe.skip(':android: Integrative actions', () => {
   beforeEach(async () => {
     await device.reloadReactNative();
   });
