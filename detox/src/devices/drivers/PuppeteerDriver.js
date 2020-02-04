@@ -686,7 +686,7 @@ class PuppeteerDriver extends DeviceDriverBase {
       // medialibrary: '',
       microphone: 'microphone',
       // motion: '',
-      notifications: ['notifications', 'push'],
+      notifications: 'notifications',
       // photos: '',
       // reminders: '',
       // siri: '',
@@ -697,8 +697,7 @@ class PuppeteerDriver extends DeviceDriverBase {
       return !['NO', 'unset', 'never', ''].includes(value || '');
     })
       .map(([key]) => PERMISSIONS_LOOKUP[key])
-      .filter(equivalentPermission => !!equivalentPermission)
-      .flat();
+      .filter(equivalentPermission => !!equivalentPermission);
     this.requestedPermissions = requestedPermissions;
   }
 
