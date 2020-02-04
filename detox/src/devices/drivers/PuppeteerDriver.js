@@ -322,21 +322,21 @@ class PuppeteerTestee {
     //   console.log('close');
     // });
 
-    const client = await page.target().createCDPSession();
-    await client.send('Animation.enable');
+    // const client = await page.target().createCDPSession();
+    // await client.send('Animation.enable');
 
-    /* animation synchronization */
-    let animationTimeById = {};
-    client.on('Animation.animationStarted', ({ animation }) => {
-      console.log('Animation started id=', animation.id)
-      console.log(animation)
-      animationTimeById[animation.id] = animation.source.duration;
-    });
-    client.on('Animation.animationCancelled', ({ id }) => {
-      console.log('animationCancelled', id);
-      delete animationTimeById[id];
-    });
-    /* end animation synchronization */
+    // /* animation synchronization */
+    // let animationTimeById = {};
+    // client.on('Animation.animationStarted', ({ animation }) => {
+    //   console.log('Animation started id=', animation.id)
+    //   console.log(animation)
+    //   animationTimeById[animation.id] = animation.source.duration;
+    // });
+    // client.on('Animation.animationCancelled', ({ id }) => {
+    //   console.log('animationCancelled', id);
+    //   delete animationTimeById[id];
+    // });
+    // /* end animation synchronization */
 
 
     await this.client.ws.open();
@@ -381,7 +381,6 @@ class PuppeteerTestee {
         _onRequestFailed = (request) => {
           removeInflightRequest(request);
         };
-        //  in sendResponse
         page.on('request', _onRequest);
         page.on('requestfinished', _onRequestFinished);
         page.on('requestfailed', _onRequestFailed);
@@ -394,26 +393,28 @@ class PuppeteerTestee {
         actionComplete = true;
         const sendResponsePromise = Object.keys(inflightRequests).length === 0 ? Promise.resolve() : networkSettledPromise;
 
-        const animationsSettledPromise = new Promise(resolve => {
-          const interval = setInterval(() => {
-            Object.entries(animationTimeById).forEach(async ([id, duration]) => {
-              const result = await client.send('Animation.getCurrentTime', {
-                'id': id,
-              });
-              if (result.currentTime === null || result.currentTime > duration) {
-                delete animationTimeById[id];
-              }
-            });
-            if (Object.keys(animationTimeById).length === 0) {
-              clearInterval(interval);
-              resolve();
-            }
-          }, 100);
-        });
+        // const animationsSettledPromise = new Promise(resolve => {
+        //   const interval = setInterval(() => {
+        //     Object.entries(animationTimeById).forEach(async ([id, duration]) => {
+        //       const result = await client.send('Animation.getCurrentTime', {
+        //         'id': id,
+        //       });
+        //       console.log({id, duration, result});
+        //       if (result.currentTime === null || result.currentTime > duration) {
+        //         delete animationTimeById[id];
+        //       }
+        //     });
+        //     if (Object.keys(animationTimeById).length === 0) {
+        //       console.log('clear', animationTimeById);
+        //       clearInterval(interval);
+        //       resolve();
+        //     }
+        //   }, 100);
+        // });
 
         return sendResponsePromise
           .then(() => removeNetworkListeners())
-          .then(() => animationsSettledPromise)
+          // .then(() => console.log('animationsSettledPromise') || animationsSettledPromise)
           .then(() => this.client.ws.ws.send(JSON.stringify(response)));
       };
 
