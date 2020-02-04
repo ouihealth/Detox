@@ -5,10 +5,6 @@ const log = require('../../utils/logger').child({ __filename });
 const DeviceDriverBase = require('./DeviceDriverBase');
 const InvocationManager = require('../../invoke').InvocationManager;
 const invoke = require('../../invoke');
-const GREYConfigurationApi = require('../../ios/earlgreyapi/GREYConfiguration');
-const GREYConfigurationDetox = require('../../ios/earlgreyapi/GREYConfigurationDetox');
-const EarlyGreyImpl = require('../../ios/earlgreyapi/EarlGreyImpl');
-const AppleSimUtils = require('../ios/AppleSimUtils');
 
 const temporaryPath = require('../../artifacts/utils/temporaryPath');
 const SimulatorLogPlugin = require('../../artifacts/log/ios/SimulatorLogPlugin');
@@ -503,8 +499,16 @@ class PuppeteerDriver extends DeviceDriverBase {
   }
 
   async setOrientation(deviceId, orientation) {
-    const call = EarlyGreyImpl.rotateDeviceToOrientationErrorOrNil(invoke.EarlGrey.instance, orientation);
-    await this.client.execute(call);
+    const viewport = await page.viewport();
+    const isLandscape = orientation === 'landscape';
+    const largerDimension = Math.max(viewport.width, viewport.height);
+    const smallerDimension = Math.min(viewport.width, viewport.height);
+    await page.setViewport({
+      ...viewport,
+      isLandscape,
+      width: isLandscape ? largerDimension : smallerDimension,
+      height: isLandscape ? smallerDimension : largerDimension,
+    });
   }
 
   getPlatform() {
@@ -614,13 +618,10 @@ class PuppeteerDriver extends DeviceDriverBase {
     await this.emitter.emit('beforeLaunchApp', { bundleId, deviceId, launchArgs });
 
     const extensionDirectory = "/Users/awinograd/programming/puppetcam";
-    const defaultViewport = this.deviceConfig && this.deviceConfig.defaultViewport
-      ? this.deviceConfig.defaultViewport
-      : { width: 1280, height: 720 };
     browser = browser || await puppeteer.launch({
       devtools: false,
       headless: true,
-      defaultViewport:  launchArgs.viewport || defaultViewport,
+      defaultViewport:  launchArgs.viewport || this._getDefaultViewport(),
       // ignoreDefaultArgs: ['--enable-automation'], // works, but shows "not your default browser toolbar"
       args: [
         '--enable-usermedia-screen-capturing',
@@ -643,6 +644,12 @@ class PuppeteerDriver extends DeviceDriverBase {
     await this.emitter.emit('launchApp', { bundleId, deviceId, launchArgs, pid });
 
     return pid;
+  }
+
+  _getDefaultViewport() {
+    return this.deviceConfig && this.deviceConfig.defaultViewport
+      ? this.deviceConfig.defaultViewport
+      : { width: 1280, height: 720 };
   }
 
   async terminate(deviceId, bundleId) {

@@ -29,7 +29,7 @@ describe('Device', () => {
     await expect(element(by.text('Hello!!!'))).toBeVisible();
   });
 
-  it('launchApp({newInstance: true}) + sendToHome() + launchApp() - should bring up previous instance', async () => {
+  it.skip('launchApp({newInstance: true}) + sendToHome() + launchApp() - should bring up previous instance', async () => {
     await device.launchApp({newInstance: true});
     await element(by.text('Sanity')).tap();
     await element(by.text('Say Hello')).tap();
@@ -62,7 +62,7 @@ describe('Device', () => {
   //   await expect(element(by.text(`Current language: ${languageAndLocale.language}`))).toBeVisible();
   // });
 
-  it('resetContentAndSettings() + install() + relaunch() - should tap successfully', async () => {
+  it.skip('resetContentAndSettings() + install() + relaunch() - should tap successfully', async () => {
     await device.resetContentAndSettings();
     await device.installApp();
     await device.launchApp({ newInstance: true });
@@ -71,14 +71,14 @@ describe('Device', () => {
     await expect(element(by.text('Hello!!!'))).toBeVisible();
   });
 
-  it(':ios: shake() should shake screen', async () => {
+  it.skip(':ios: shake() should shake screen', async () => {
     await device.reloadReactNative();
     await element(by.text('Shake')).tap();
     await device.shake();
     await expect(element(by.text('Shaken, not stirred'))).toBeVisible();
   });
 
-  it(':android: device back button - should show popup back pressed when back button is pressed', async () => {
+  it.skip(':android: device back button - should show popup back pressed when back button is pressed', async () => {
     await device.reloadReactNative();
     await element(by.text('Actions')).tap();
     await device.pressBack();
