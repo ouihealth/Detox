@@ -1,4 +1,4 @@
-describe(':ios: DatePicker', () => {
+describe.skip(':ios: DatePicker', () => {
     beforeEach(async () => {
       await device.reloadReactNative();
       await element(by.text('DatePicker')).tap();

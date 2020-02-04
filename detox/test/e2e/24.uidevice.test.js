@@ -1,4 +1,4 @@
-  describe(':android: UIDevice', () => {
+  describe.skip(':android: UIDevice', () => {
     beforeEach(async() => {
       await device.reloadReactNative();
     });

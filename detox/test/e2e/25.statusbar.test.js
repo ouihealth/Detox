@@ -1,6 +1,6 @@
 
 
-describe(':ios: StatusBar Override', () => {
+describe.skip(':ios: StatusBar Override', () => {
   afterEach(async () => {
     await device.resetStatusBar();
   });

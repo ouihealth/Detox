@@ -1,6 +1,6 @@
 const DetoxConstants = require('detox').DetoxConstants;
 
-describe(':ios: User Activity', () => {
+describe.skip(':ios: User Activity', () => {
   it('Init from browsing web', async () => {
     // await device.__debug_sleep(10000);
     await device.launchApp({newInstance: true, userActivity: userActivityBrowsingWeb});

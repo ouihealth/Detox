@@ -1,4 +1,4 @@
-describe('Open URLs', () => {
+describe.skip('Open URLs', () => {
   afterAll(async () => {
     await device.launchApp({
       newInstance: true,
