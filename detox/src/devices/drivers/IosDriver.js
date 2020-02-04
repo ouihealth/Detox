@@ -31,7 +31,7 @@ class IosDriver extends DeviceDriverBase {
       instruments: (api) => new SimulatorInstrumentsPlugin({ api, client }),
       log: (api) => new SimulatorLogPlugin({ api, appleSimUtils }),
       screenshot: (api) => new SimulatorScreenshotPlugin({ api, appleSimUtils }),
-      video: (api) => new SimulatorRecordVideoPlugin({ api, appleSimUtils })
+      video: (api) => new SimulatorRecordVideoPlugin({ api, appleSimUtils }),
     };
   }
 
@@ -46,17 +46,25 @@ class IosDriver extends DeviceDriverBase {
       GREYConfigurationApi.setValueForConfigKey(
         invoke.callDirectly(GREYConfigurationApi.sharedInstance()),
         urlList,
-        'GREYConfigKeyURLBlacklistRegex'
+        "GREYConfigKeyURLBlacklistRegex"
       )
     );
   }
 
   async enableSynchronization() {
-    await this.client.execute(GREYConfigurationDetox.enableSynchronization(invoke.callDirectly(GREYConfigurationApi.sharedInstance())));
+    await this.client.execute(
+      GREYConfigurationDetox.enableSynchronization(
+        invoke.callDirectly(GREYConfigurationApi.sharedInstance())
+      )
+    );
   }
 
   async disableSynchronization() {
-    await this.client.execute(GREYConfigurationDetox.disableSynchronization(invoke.callDirectly(GREYConfigurationApi.sharedInstance())));
+    await this.client.execute(
+      GREYConfigurationDetox.disableSynchronization(
+        invoke.callDirectly(GREYConfigurationApi.sharedInstance())
+      )
+    );
   }
 
   async shake(deviceId) {
@@ -64,7 +72,7 @@ class IosDriver extends DeviceDriverBase {
   }
 
   async setOrientation(deviceId, orientation) {
-    const call = EarlyGreyImpl.rotateDeviceToOrientationErrorOrNil(invoke.EarlGrey.instance, orientation);
+    const call = EarlyGreyImpl.rotateDeviceToOrientationErrorOrNil(invoke.EarlGrey.instance,orientation);
     await this.client.execute(call);
   }
 

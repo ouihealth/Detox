@@ -29,8 +29,7 @@ function callDirectly(json) {
   };
 }
 
-const genericInvokeObject = new Proxy(
-  {},
+const genericInvokeObject = new Proxy({},
   {
     get: (target, prop) => {
       return (p) => {
@@ -40,8 +39,7 @@ const genericInvokeObject = new Proxy(
         };
       };
     }
-  }
-);
+  });
 
 module.exports = {
   call,

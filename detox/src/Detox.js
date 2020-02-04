@@ -30,7 +30,7 @@ function debug(label, ...args) {
 }
 
 class Detox {
-  constructor({ artifactsConfig, deviceConfig, session }) {
+  constructor({artifactsConfig, deviceConfig, session}) {
     this._deviceConfig = deviceConfig;
     this._userSession = deviceConfig.session || session;
     this._client = null;
@@ -45,13 +45,13 @@ class Detox {
     const params = {
       launchApp: true,
       initGlobals: true,
-      ...userParams
+      ...userParams,
     };
 
     if (!this._userSession) {
       this._server = new DetoxServer({
         log: logger,
-        port: new URL(sessionConfig.server).port
+        port: new URL(sessionConfig.server).port,
       });
     }
 
@@ -64,7 +64,7 @@ class Detox {
     }
 
     const deviceDriver = new DeviceDriverClass({
-      client: this._client
+      client: this._client,
     });
 
     this._artifactsManager.subscribeToDeviceEvents(deviceDriver);
@@ -73,14 +73,14 @@ class Detox {
     const device = new Device({
       deviceConfig: this._deviceConfig,
       deviceDriver,
-      sessionConfig
+      sessionConfig,
     });
 
     await device.prepare(params);
 
     const globalsToExport = {
       ...deviceDriver.matchers,
-      device
+      device,
     };
 
     Object.assign(this, globalsToExport);
@@ -117,7 +117,7 @@ class Detox {
     this._logTestRunCheckpoint('DETOX_BEFORE_EACH', testSummary);
     await this._dumpUnhandledErrorsIfAny({
       pendingRequests: false,
-      testName: testSummary.fullName
+      testName: testSummary.fullName,
     });
     await this._artifactsManager.onTestStart(testSummary);
   }
@@ -128,7 +128,7 @@ class Detox {
     await this._artifactsManager.onTestDone(testSummary);
     await this._dumpUnhandledErrorsIfAny({
       pendingRequests: testSummary.timedOut,
-      testName: testSummary.fullName
+      testName: testSummary.fullName,
     });
   }
 
@@ -139,14 +139,12 @@ class Detox {
   _validateTestSummary(testSummary) {
     if (!_.isPlainObject(testSummary)) {
       throw new DetoxRuntimeError({
-        message:
-          `Invalid test summary was passed to detox.beforeEach(testSummary)` +
+        message: `Invalid test summary was passed to detox.beforeEach(testSummary)` +
           '\nExpected to get an object of type: { title: string; fullName: string; status: "running" | "passed" | "failed"; }',
-        hint:
-          'Maybe you are still using an old undocumented signature detox.beforeEach(string, string, string) in init.js ?' +
+        hint: 'Maybe you are still using an old undocumented signature detox.beforeEach(string, string, string) in init.js ?' +
           '\nSee the article for the guidance: ' +
           'https://github.com/wix/detox/blob/master/docs/APIRef.TestLifecycle.md',
-        debugInfo: `testSummary was: ${util.inspect(testSummary)}`
+        debugInfo: `testSummary was: ${util.inspect(testSummary)}`,
       });
     }
 
@@ -158,16 +156,15 @@ class Detox {
       default:
         throw new DetoxRuntimeError({
           message: `Invalid test summary status was passed to detox.beforeEach(testSummary). Valid values are: "running", "passed", "failed"`,
-          hint:
-            "It seems like you've hit a Detox integration issue with a test runner. You are encouraged to report it in Detox issues on GitHub.",
-          debugInfo: `testSummary was: ${JSON.stringify(testSummary, null, 2)}`
+          hint: "It seems like you've hit a Detox integration issue with a test runner. You are encouraged to report it in Detox issues on GitHub.",
+          debugInfo: `testSummary was: ${JSON.stringify(testSummary, null, 2)}`,
         });
     }
   }
 
   async _dumpUnhandledErrorsIfAny({ testName, pendingRequests }) {
     if (pendingRequests) {
-      this._client.dumpPendingRequests({ testName });
+      this._client.dumpPendingRequests({testName});
     }
 
     const pendingAppCrash = this._client.getPendingCrashAndReset();
@@ -179,7 +176,7 @@ class Detox {
   }
 
   async _getSessionConfig() {
-    const session = this._userSession || (await configuration.defaultSession());
+    const session = this._userSession || await configuration.defaultSession();
 
     configuration.validateSession(session);
 
