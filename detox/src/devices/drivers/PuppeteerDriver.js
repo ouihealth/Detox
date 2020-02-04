@@ -287,6 +287,8 @@ class PuppeteerTestee {
       }, matcher.args[0]);
     }
 
+    debugTestee('/assertWithMatcher', { result });
+
     if (!result) throw new Error('assertion failed');
     return result;
   }
@@ -301,8 +303,7 @@ class PuppeteerTestee {
       return arg;
     });
 
-    const args = await Promise.all(promises);
-    logLevel('call', params, args);
+    const args = await Promise.all(promises)
     if (params.target === 'this' || params.target.type === 'this') {
       const result = await this[params.method](...args);
       debugTestee('result?', params.method, !!result);
