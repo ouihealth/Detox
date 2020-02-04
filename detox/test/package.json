@@ -49,8 +49,7 @@
     },
     "configurations": {
       "web.puppeteer": {
-        "binaryPath": "",
-        "baseUrl": "file:///Users/awinograd/programming/oui-aviva/web-build/index.html",
+        "binaryPath": "/http://localhost:19006/",
         "type": "web.puppeteer",
         "name": "puppeteer"
       },

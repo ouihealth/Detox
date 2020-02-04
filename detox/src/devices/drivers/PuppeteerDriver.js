@@ -632,7 +632,7 @@ class PuppeteerDriver extends DeviceDriverBase {
     });
     this._applyPermissions();
 
-    const url = launchArgs.detoxURLOverride || this.deviceConfig.baseUrl;
+    const url = launchArgs.detoxURLOverride || this.deviceConfig.binaryPath.slice(1);
     if (url) {
       page = (await browser.pages())[0];
       await page.goto(url, { waitUntil: 'networkidle2' });
@@ -722,8 +722,8 @@ class PuppeteerDriver extends DeviceDriverBase {
     if (browser && this.requestedPermissions) {
       const context = browser.defaultBrowserContext();
       await context.clearPermissionOverrides();
-      console.log('grant', this.requestedPermissions);
-      await context.overridePermissions('http://localhost:19006', this.requestedPermissions)
+      const url = await page.url();
+      await context.overridePermissions(new URL(url).origin, this.requestedPermissions)
     }
   }
 
@@ -740,8 +740,8 @@ class PuppeteerDriver extends DeviceDriverBase {
   validateDeviceConfig(deviceConfig) {
     this.deviceConfig = deviceConfig;
     debug('validateDeviceConfig', deviceConfig);
-    if (!deviceConfig.baseUrl) {
-      console.error('PuppeteerDriver requires baseUrl to be set in detox config');
+    if (!deviceConfig.binaryPath) {
+      console.error('PuppeteerDriver requires binaryPath to be set in detox config in the format `/${URL}`');
       configuration.throwOnEmptyBinaryPath();
     }
   }
@@ -782,7 +782,7 @@ class PuppeteerDriver extends DeviceDriverBase {
   }
 
   async reloadReactNative() {
-    const url = this.deviceConfig.baseUrl;
+    const url = this.deviceConfig.binaryPath.slice(1);
     if (url) {
       page = (await browser.pages())[0];
       await page.goto(url, { waitUntil: 'networkidle2' });
