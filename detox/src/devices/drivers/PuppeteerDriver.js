@@ -323,6 +323,21 @@ class PuppeteerTestee {
 
     const client = await page.target().createCDPSession();
     await client.send('Animation.enable');
+
+    /* animation synchronization */
+    let animationTimeById = {};
+    client.on('Animation.animationStarted', ({ animation }) => {
+      console.log('Animation started id=', animation.id)
+      console.log(animation)
+      animationTimeById[animation.id] = animation.source.duration;
+    });
+    client.on('Animation.animationCancelled', ({ id }) => {
+      console.log('animationCancelled', id);
+      delete animationTimeById[id];
+    });
+    /* end animation synchronization */
+
+
     await this.client.ws.open();
     this.client.ws.ws.on('message', async (str) => {
       let actionComplete = false;
@@ -372,20 +387,6 @@ class PuppeteerTestee {
       });
 
       /* end network synchronization */
-
-
-      /* animation synchronization */
-      const animationTimeById = {}; 
-      client.on('Animation.animationStarted', ({ animation }) => {
-        // console.log('Animation started id=', animation.id)
-        // console.log(animation)
-        animationTimeById[animation.id] = animation.source.duration;
-      });
-      client.on('Animation.animationCancelled', ({ id }) => {
-        delete animationTimeById[id];
-      });
-      /* end animation synchronization */
-
 
       const sendResponse = async (response) => {
         debugTestee('sendResponse', response);
