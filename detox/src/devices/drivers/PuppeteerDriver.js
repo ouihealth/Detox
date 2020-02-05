@@ -325,12 +325,12 @@ class PuppeteerTestee {
     /* animation synchronization */
     let animationTimeById = {};
     client.on('Animation.animationStarted', ({ animation }) => {
-      console.log('Animation started id=', animation.id)
-      console.log(animation)
+      // console.log('Animation started id=', animation.id)
+      // console.log(animation)
       animationTimeById[animation.id] = animation.source.duration;
     });
     client.on('Animation.animationCancelled', ({ id }) => {
-      console.log('animationCancelled', id);
+      // console.log('animationCancelled', id);
       delete animationTimeById[id];
     });
     /* end animation synchronization */
