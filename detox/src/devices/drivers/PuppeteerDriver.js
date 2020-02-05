@@ -187,7 +187,6 @@ class PuppeteerTestee {
 
       await element.evaluate(
         (el, scrollOptions) => {
-          console.log(el, scrollOptions);
           el.scrollBy(scrollOptions);
         },
         { top, left }
@@ -339,6 +338,30 @@ class PuppeteerTestee {
     this.client.ws.ws.on('message', async (str) => {
       let actionComplete = false;
 
+      await page.evaluate(() => {
+        if (!window._detoxOriginalSetTimeout) window._detoxOriginalSetTimeout = window.setTimeout;
+        if (!window._detoxOriginalClearTimeout) window._detoxOriginalClearTimeout = window.clearTimeout;
+        window._detoxTimeouts = {};
+        window.setTimeout = (callback, ms) => {
+          const stack = new Error().stack;
+          const isPuppeteerTimeout = stack.includes("waitForPredicatePageFunction");
+          if (isPuppeteerTimeout) {
+            window._detoxOriginalSetTimeout(callback, ms);
+            return;
+          }
+
+          const timeout = window._detoxOriginalSetTimeout(() => {
+            delete window._detoxTimeouts[timeout];
+            callback();
+          }, ms);
+          window._detoxTimeouts[timeout] = true;
+        };
+        window.clearTimeout = (timeout) => {
+          delete window._detoxTimeouts[timeout];
+          window._detoxOriginalClearTimeout(timeout);
+        };
+      });
+
       /* Network synchronization */
       const inflightRequests = {};
       let _onRequest, _onRequestFailed, _onRequestFinished;
@@ -411,6 +434,12 @@ class PuppeteerTestee {
         return sendResponsePromise
           .then(() => removeNetworkListeners())
           .then(() => animationsSettledPromise)
+          .then(() => {
+            if (!enableSynchronization) return;
+            return page.waitFor(() => {
+              return Object.keys(window._detoxTimeouts).length === 0;
+            });
+          })
           .then(() => this.client.ws.ws.send(JSON.stringify(response)));
       };
 
@@ -529,7 +558,6 @@ class PuppeteerDriver extends DeviceDriverBase {
 
   async stopVideo(deviceId) {
     const exportname = `puppet${Math.random()}.webm`
-    console.log("stopVideo");
     await page.evaluate(filename=>{
       window.postMessage({type: 'SET_EXPORT_PATH', filename: filename}, '*')
       window.postMessage({type: 'REC_STOP'}, '*')
