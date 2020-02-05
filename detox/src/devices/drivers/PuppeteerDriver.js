@@ -25,11 +25,11 @@ function sleep(ms) {
 
 function debug(label, ...args) {
   return;
-  console.log(`PuppeteerDriver.${label}`, ...args);
+  log.info(`PuppeteerDriver.${label}`, ...args);
 }
 function debugTestee(label, ...args) {
   return;
-  console.log(`PuppeteerTestee.${label}`, ...args);
+  log.info(`PuppeteerTestee.${label}`, ...args);
 }
 
 let enableSynchronization = true;
@@ -98,11 +98,6 @@ class PuppeteerTestee {
     }
 
     return result;
-  }
-
-  async getElementHandle(...args) {
-    debugTestee('getElementHandle', args);
-    return await page.waitForSelector(...args);
   }
 
   async performAction(element, action) {
@@ -303,7 +298,7 @@ class PuppeteerTestee {
   async invoke(params) {
     debugTestee('invoke', JSON.stringify(params, null, 2));
     const promises = params.args.map((arg) => {
-      debugTestee('arg', arg);
+      // debugTestee('arg', arg);
       if (arg.type === 'Invocation') {
         return this.invoke(arg.value);
       }
@@ -496,7 +491,7 @@ class PuppeteerTestee {
             if (result === false || result === null) throw new Error('invalid result');
             await sendResponse({ type: 'invokeResult', messageId: action.messageId });
           } catch (error) {
-            this.client.ws.ws.send(JSON.stringify({ type: 'testFailed', messageId, params: { details: error.message } }))
+            this.client.ws.ws.send(JSON.stringify({ type: 'testFailed', messageId, params: { details: str + '\n' + error.message } }))
           }
         }
       } catch (error) {
