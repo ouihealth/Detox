@@ -50,6 +50,12 @@ class PuppeteerTestee {
     const indexArg = args.find((a) => a.method === 'index');
     let result = null;
     try {
+      // This is a dummy waitFor because sometimes the JS thread is (apparently)
+      // blocked and doesn't execute our element finding function a single time
+      // before being able to run again.
+      await page.waitFor(() => {
+        return true;
+      });
       result = await page.waitFor(
         ({ selectorArg, indexArg, visibleArg }) => {
           const xpath = selectorArg.args[0];
