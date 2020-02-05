@@ -422,9 +422,13 @@ class PuppeteerTestee {
         const animationsSettledPromise = enableSynchronization ? new Promise(resolve => {
           const interval = setInterval(() => {
             Object.entries(animationTimeById).forEach(async ([id, duration]) => {
-              const result = await client.send('Animation.getCurrentTime', {
-                'id': id,
-              });
+              let result = { currentTime: null };
+              try {
+                result = await client.send('Animation.getCurrentTime', {
+                  'id': id,
+                });
+                // if this call errors out, just assume the animation is done
+              } catch (e) {}
               if (result.currentTime === null || result.currentTime > duration) {
                 delete animationTimeById[id];
               }
