@@ -319,22 +319,21 @@ class PuppeteerTestee {
     //   console.log('close');
     // });
 
-    // const client = await page.target().createCDPSession();
-    // await client.send('Animation.enable');
+    const client = await page.target().createCDPSession();
+    await client.send('Animation.enable');
 
-    // /* animation synchronization */
-    // let animationTimeById = {};
-    // client.on('Animation.animationStarted', ({ animation }) => {
-    //   console.log('Animation started id=', animation.id)
-    //   console.log(animation)
-    //   animationTimeById[animation.id] = animation.source.duration;
-    // });
-    // client.on('Animation.animationCancelled', ({ id }) => {
-    //   console.log('animationCancelled', id);
-    //   delete animationTimeById[id];
-    // });
-    // /* end animation synchronization */
-
+    /* animation synchronization */
+    let animationTimeById = {};
+    client.on('Animation.animationStarted', ({ animation }) => {
+      console.log('Animation started id=', animation.id)
+      console.log(animation)
+      animationTimeById[animation.id] = animation.source.duration;
+    });
+    client.on('Animation.animationCancelled', ({ id }) => {
+      console.log('animationCancelled', id);
+      delete animationTimeById[id];
+    });
+    /* end animation synchronization */
 
     await this.client.ws.open();
     this.client.ws.ws.on('message', async (str) => {
@@ -392,28 +391,26 @@ class PuppeteerTestee {
           ? networkSettledPromise
           : Promise.resolve();
 
-        // const animationsSettledPromise = new Promise(resolve => {
-        //   const interval = setInterval(() => {
-        //     Object.entries(animationTimeById).forEach(async ([id, duration]) => {
-        //       const result = await client.send('Animation.getCurrentTime', {
-        //         'id': id,
-        //       });
-        //       console.log({id, duration, result});
-        //       if (result.currentTime === null || result.currentTime > duration) {
-        //         delete animationTimeById[id];
-        //       }
-        //     });
-        //     if (Object.keys(animationTimeById).length === 0) {
-        //       console.log('clear', animationTimeById);
-        //       clearInterval(interval);
-        //       resolve();
-        //     }
-        //   }, 100);
-        // });
+        const animationsSettledPromise = enableSynchronization ? new Promise(resolve => {
+          const interval = setInterval(() => {
+            Object.entries(animationTimeById).forEach(async ([id, duration]) => {
+              const result = await client.send('Animation.getCurrentTime', {
+                'id': id,
+              });
+              if (result.currentTime === null || result.currentTime > duration) {
+                delete animationTimeById[id];
+              }
+            });
+            if (Object.keys(animationTimeById).length === 0) {
+              clearInterval(interval);
+              resolve();
+            }
+          }, 100);
+        }) : Promise.resolve();
 
         return sendResponsePromise
           .then(() => removeNetworkListeners())
-          // .then(() => console.log('animationsSettledPromise') || animationsSettledPromise)
+          .then(() => animationsSettledPromise)
           .then(() => this.client.ws.ws.send(JSON.stringify(response)));
       };
 
@@ -426,6 +423,7 @@ class PuppeteerTestee {
           return;
         }
         if (action.type === 'loginSuccess') {
+          await removeNetworkListeners();
           return;
         } else if (action.type === 'deliverPayload') {
           if (action.params && action.params.url) {
