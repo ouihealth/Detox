@@ -343,6 +343,7 @@ class PuppeteerTestee {
     this.client.ws.ws.on('message', async (str) => {
       let actionComplete = false;
 
+      // https://github.com/wix/Detox/blob/ca620e760747ade9cb673c28262200b02e8e8a5d/docs/Troubleshooting.Synchronization.md#settimeout-and-setinterval
       async function setupDetoxTimeouts() {
         await page.evaluate(() => {
           if (!window._detoxOriginalSetTimeout) window._detoxOriginalSetTimeout = window.setTimeout;
@@ -371,7 +372,9 @@ class PuppeteerTestee {
 
       try {
         // TODO figure out why we need a try catch here. Sometimes it errors as "Target closed"
-        setupDetoxTimeouts();
+        // Also firebase uses a setTimeout on repeat which doesn't seem compatible with timeout logic
+        // https://github.com/firebase/firebase-js-sdk/blob/6b53e0058483c9002d2fe56119f86fc9fb96b56c/packages/auth/src/storage/indexeddb.js#L644
+        // setupDetoxTimeouts();
       }
       catch (e) {
         // console.warn(e);
@@ -456,7 +459,7 @@ class PuppeteerTestee {
           .then(() => {
             if (!enableSynchronization) return;
             return page.waitFor(() => {
-              return Object.keys(window._detoxTimeouts).length === 0;
+              return Object.keys(window._detoxTimeouts || {}).length === 0;
             });
           })
           .then(() => this.client.ws.ws.send(JSON.stringify(response)));
@@ -476,7 +479,7 @@ class PuppeteerTestee {
         } else if (action.type === 'deliverPayload') {
           if (action.params && action.params.url) {
             await page.goto(action.params.url, { waitUntil: 'networkidle2' });
-            await setupDetoxTimeouts();
+            // await setupDetoxTimeouts();
           }
           await sendResponse({ type: 'deliverPayloadDone', messageId: action.messageId });
         } else if (action.type === 'currentStatus') {
@@ -487,7 +490,7 @@ class PuppeteerTestee {
             if (result === false || result === null) throw new Error('invalid result');
             await sendResponse({ type: 'invokeResult', messageId: action.messageId });
           } catch (error) {
-            await sendResponse({ type: 'testFailed', messageId, params: { details: error.message } });
+            this.client.ws.ws.send(JSON.stringify({ type: 'testFailed', messageId, params: { details: error.message } }))
           }
         }
       } catch (error) {
