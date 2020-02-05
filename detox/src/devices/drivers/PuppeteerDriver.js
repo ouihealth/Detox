@@ -343,12 +343,11 @@ class PuppeteerTestee {
     this.client.ws.ws.on('message', async (str) => {
       let actionComplete = false;
 
-      try {
-        // TODO figure out why we need a try catch here. Sometimes it errors as "Target closed"
+      async function setupDetoxTimeouts() {
         await page.evaluate(() => {
           if (!window._detoxOriginalSetTimeout) window._detoxOriginalSetTimeout = window.setTimeout;
           if (!window._detoxOriginalClearTimeout) window._detoxOriginalClearTimeout = window.clearTimeout;
-          window._detoxTimeouts = {};
+          if (!window._detoxTimeouts) window._detoxTimeouts = {};
           window.setTimeout = (callback, ms) => {
             const stack = new Error().stack;
             const isPuppeteerTimeout = stack.includes("waitForPredicatePageFunction");
@@ -368,6 +367,11 @@ class PuppeteerTestee {
             window._detoxOriginalClearTimeout(timeout);
           };
         });
+      }
+
+      try {
+        // TODO figure out why we need a try catch here. Sometimes it errors as "Target closed"
+        setupDetoxTimeouts();
       }
       catch (e) {
         // console.warn(e);
@@ -472,6 +476,7 @@ class PuppeteerTestee {
         } else if (action.type === 'deliverPayload') {
           if (action.params && action.params.url) {
             await page.goto(action.params.url, { waitUntil: 'networkidle2' });
+            await setupDetoxTimeouts();
           }
           await sendResponse({ type: 'deliverPayloadDone', messageId: action.messageId });
         } else if (action.type === 'currentStatus') {
@@ -486,8 +491,8 @@ class PuppeteerTestee {
           }
         }
       } catch (error) {
-        await sendResponse({ type: 'error', messageId: messageId, params: { error } });
         console.error(error);
+        await sendResponse({ type: 'error', messageId: messageId, params: { error } });
         await browser.close();
         browser = null;
       }
