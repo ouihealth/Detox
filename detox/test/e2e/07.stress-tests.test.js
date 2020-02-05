@@ -4,13 +4,13 @@ describe('StressTests', () => {
     await element(by.text('Stress')).tap();
   });
 
-  it('should handle tap during busy bridge (one way)', async () => {
+  it.skip('should handle tap during busy bridge (one way)', async () => {
     await element(by.text('Bridge OneWay Stress')).tap();
     await element(by.text('Next')).tap();
     await expect(element(by.text('BridgeOneWay'))).toBeVisible();
   });
 
-  it('should handle tap during busy bridge (two way)', async () => {
+  it.skip('should handle tap during busy bridge (two way)', async () => {
     await element(by.text('Bridge TwoWay Stress')).tap();
     await element(by.text('Next')).tap();
     await expect(element(by.text('BridgeTwoWay'))).toBeVisible();

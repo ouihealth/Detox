@@ -76,7 +76,7 @@ class PuppeteerTestee {
 
           return element;
         },
-        { timeout: timeoutArg ? timeoutArg.args[0].timeout : 500 },
+        { timeout: timeoutArg ? timeoutArg.args[0].timeout : 200 },
         { visibleArg, selectorArg, indexArg }
       );
       if (visibleArg && visibleArg.args[0].visible === false) {
@@ -88,7 +88,7 @@ class PuppeteerTestee {
         const shouldBeVisible = visibleArg.args[0].visible === true;
         if (shouldBeVisible) throw new Error(e.toString() + selectorArg.args[0]);
       }
-      console.log(e);
+      // console.warn(e);
     }
 
     return result;
@@ -343,29 +343,35 @@ class PuppeteerTestee {
     this.client.ws.ws.on('message', async (str) => {
       let actionComplete = false;
 
-      await page.evaluate(() => {
-        if (!window._detoxOriginalSetTimeout) window._detoxOriginalSetTimeout = window.setTimeout;
-        if (!window._detoxOriginalClearTimeout) window._detoxOriginalClearTimeout = window.clearTimeout;
-        window._detoxTimeouts = {};
-        window.setTimeout = (callback, ms) => {
-          const stack = new Error().stack;
-          const isPuppeteerTimeout = stack.includes("waitForPredicatePageFunction");
-          if (isPuppeteerTimeout) {
-            window._detoxOriginalSetTimeout(callback, ms);
-            return;
-          }
+      try {
+        // TODO figure out why we need a try catch here. Sometimes it errors as "Target closed"
+        await page.evaluate(() => {
+          if (!window._detoxOriginalSetTimeout) window._detoxOriginalSetTimeout = window.setTimeout;
+          if (!window._detoxOriginalClearTimeout) window._detoxOriginalClearTimeout = window.clearTimeout;
+          window._detoxTimeouts = {};
+          window.setTimeout = (callback, ms) => {
+            const stack = new Error().stack;
+            const isPuppeteerTimeout = stack.includes("waitForPredicatePageFunction");
+            if (isPuppeteerTimeout) {
+              window._detoxOriginalSetTimeout(callback, ms);
+              return;
+            }
 
-          const timeout = window._detoxOriginalSetTimeout(() => {
+            const timeout = window._detoxOriginalSetTimeout(() => {
+              delete window._detoxTimeouts[timeout];
+              callback();
+            }, ms);
+            window._detoxTimeouts[timeout] = true;
+          };
+          window.clearTimeout = (timeout) => {
             delete window._detoxTimeouts[timeout];
-            callback();
-          }, ms);
-          window._detoxTimeouts[timeout] = true;
-        };
-        window.clearTimeout = (timeout) => {
-          delete window._detoxTimeouts[timeout];
-          window._detoxOriginalClearTimeout(timeout);
-        };
-      });
+            window._detoxOriginalClearTimeout(timeout);
+          };
+        });
+      }
+      catch (e) {
+        // console.warn(e);
+      }
 
       /* Network synchronization */
       const inflightRequests = {};
