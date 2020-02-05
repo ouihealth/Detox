@@ -10,13 +10,9 @@ const VisibleMatcher = matchers.VisibleMatcher;
 const NotVisibleMatcher = matchers.NotVisibleMatcher;
 const ExistsMatcher = matchers.ExistsMatcher;
 const NotExistsMatcher = matchers.NotExistsMatcher;
+const NotValueMatcher = matchers.NotValueMatcher;
 const TextMatcher = matchers.TextMatcher;
 const ValueMatcher = matchers.ValueMatcher;
-const GreyActions = require('../ios/earlgreyapi/GREYActions');
-const GreyInteraction = require('../ios/earlgreyapi/GREYInteraction');
-const GreyCondition = require('../ios/earlgreyapi/GREYCondition');
-const GreyConditionDetox = require('../ios/earlgreyapi/GREYConditionDetox');
-const GreyActionsDetox = require('../ios/earlgreyapi/GREYActions+Detox');
 
 function callThunk(element) {
   return typeof element._call === 'function' ? element._call() : element._call;
@@ -272,20 +268,11 @@ class WaitForInteraction extends Interaction {
     // we need to override the original matcher for the element and add matcher to it as well
     this._element._selectElementWithMatcher(this._element._originalMatcher, this._originalMatcher);
   }
-  _not() {
-    this._notCondition = true;
-    return this;
-  }
   async withTimeout(timeout) {
     if (typeof timeout !== 'number') throw new Error(`WaitForInteraction withTimeout argument must be a number, got ${typeof timeout}`);
     if (timeout < 0) throw new Error('timeout must be larger than 0');
 
     let _conditionCall;
-    // if (!this._notCondition) {
-    //   _conditionCall = GreyConditionDetox.detoxConditionForElementMatched(callThunk(this._element));
-    // } else {
-    //   _conditionCall = GreyConditionDetox.detoxConditionForNotElementMatched(callThunk(this._element));
-    // }
 
     const call = callThunk(this._element);
     call.args.push({
@@ -473,13 +460,13 @@ class WaitForElement extends WaitFor {
     return new WaitForInteraction(this._invocationManager, this._element, new VisibleMatcher());
   }
   toBeNotVisible() {
-    return new WaitForInteraction(this._invocationManager, this._element, new VisibleMatcher())._not();
+    return new WaitForInteraction(this._invocationManager, this._element, new NotVisibleMatcher());
   }
   toExist() {
     return new WaitForInteraction(this._invocationManager, this._element, new ExistsMatcher());
   }
   toNotExist() {
-    return new WaitForInteraction(this._invocationManager, this._element, new ExistsMatcher())._not();
+    return new WaitForInteraction(this._invocationManager, this._element, new NotExistsMatcher());
   }
   toHaveText(text) {
     return new WaitForInteraction(this._invocationManager, this._element, new TextMatcher(text));
@@ -488,7 +475,7 @@ class WaitForElement extends WaitFor {
     return new WaitForInteraction(this._invocationManager, this._element, new ValueMatcher(value));
   }
   toNotHaveValue(value) {
-    return new WaitForInteraction(this._invocationManager, this._element, new ValueMatcher(value))._not();
+    return new WaitForInteraction(this._invocationManager, this._element, new NotValueMatcher(value));
   }
 }
 

@@ -51,7 +51,7 @@ class PuppeteerTestee {
     let result = null;
     try {
       result = await page.waitFor(
-        ({ selectorArg, indexArg }) => {
+        ({ selectorArg, indexArg, visibleArg }) => {
           const xpath = selectorArg.args[0];
           const isContainMatcher = xpath.includes('contains(');
           // return document.querySelector(selectorArg ? selectorArg.args.join('') : 'body');
@@ -69,10 +69,15 @@ class PuppeteerTestee {
             }
           }
 
-          return elements[indexArg ? indexArg.args[0] : 0];
+          const element = elements[indexArg ? indexArg.args[0] : 0];
+          if (visibleArg && visibleArg.args[0].visible === false && !element) {
+            return true;
+          }
+
+          return element;
         },
         { timeout: timeoutArg ? timeoutArg.args[0].timeout : 500 },
-        { selectorArg, indexArg }
+        { visibleArg, selectorArg, indexArg }
       );
       if (visibleArg && visibleArg.args[0].visible === false) {
         const isVisible = await result.isIntersectingViewport();
@@ -83,7 +88,7 @@ class PuppeteerTestee {
         const shouldBeVisible = visibleArg.args[0].visible === true;
         if (shouldBeVisible) throw new Error(e.toString() + selectorArg.args[0]);
       }
-      console.warn(e);
+      console.log(e);
     }
 
     return result;
@@ -463,7 +468,8 @@ class PuppeteerTestee {
           await sendResponse({ type: 'currentStatusResult', params: { resources: [] } });
         } else {
           try {
-            await this.invoke(action.params);
+            const result = await this.invoke(action.params);
+            if (result === false || result === null) throw new Error('invalid result');
             await sendResponse({ type: 'invokeResult', messageId: action.messageId });
           } catch (error) {
             await sendResponse({ type: 'testFailed', messageId, params: { details: error.message } });

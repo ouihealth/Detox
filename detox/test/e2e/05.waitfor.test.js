@@ -30,7 +30,7 @@ describe('WaitFor', () => {
     await expect(element(by.id('deletedFromHierarchyText'))).toBeNotVisible();
   });
 
-  custom.it.withFailureIf.android.rn58OrNewer('should find element by scrolling until it is visible', async () => {
+  it.skip('should find element by scrolling until it is visible', async () => {
     await expect(element(by.text('Text5'))).toBeNotVisible();
     await element(by.id('GoButton')).tap();
     await waitFor(element(by.text('Text5'))).toBeVisible().whileElement(by.id('ScrollView')).scroll(50, 'down');
@@ -42,7 +42,7 @@ describe('WaitFor', () => {
     await expectToThrow(() => waitFor(element(by.id('neverAppearingText'))).toExist().withTimeout(1000));
   });
 
-  it('should abort scrolling if element was not found', async () => {
+  it.skip('should abort scrolling if element was not found', async () => {
     await element(by.id('GoButton')).tap();
     await expectToThrow(() => waitFor(element(by.text('Text1000'))).toBeVisible().whileElement(by.id('ScrollView')).scroll(50, 'down'));
     await expect(element(by.text('Text1000'))).toBeNotVisible();

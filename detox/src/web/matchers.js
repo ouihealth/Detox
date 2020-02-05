@@ -238,6 +238,20 @@ class ValueMatcher extends Matcher {
   }
 }
 
+class NotValueMatcher extends Matcher {
+  constructor(value) {
+    super();
+    this._call = {
+      target: {
+        type: 'matcher',
+        value: 'matcher'
+      },
+      method: 'selector',
+      args: [`[not(@value="${value}")]`]
+    };
+  }
+}
+
 module.exports = {
   Matcher,
   LabelMatcher,
@@ -250,5 +264,6 @@ module.exports = {
   NotExistsMatcher,
   TextMatcher,
   IndexMatcher,
-  ValueMatcher
+  ValueMatcher,
+  NotValueMatcher
 };
