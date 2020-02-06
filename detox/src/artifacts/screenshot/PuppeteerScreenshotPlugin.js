@@ -12,14 +12,14 @@ class PuppeteerScreenshotPlugin extends ScreenshotArtifactPlugin {
   }
 
   createTestArtifact() {
-    const { context, appleSimUtils } = this;
+    const { driver, context, appleSimUtils } = this;
 
     return new FileArtifact({
       name: 'PuppeteerScreenshot',
 
       async start() {
         this.temporaryPath = temporaryPath.for.png();
-        await this.driver.takeScreenshot(context.deviceId, this.temporaryPath);
+        await driver.takeScreenshot(context.deviceId, this.temporaryPath);
       }
     });
   }
