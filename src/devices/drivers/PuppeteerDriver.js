@@ -676,6 +676,7 @@ class PuppeteerDriver extends DeviceDriverBase {
       defaultViewport:  launchArgs.viewport || this._getDefaultViewport(),
       // ignoreDefaultArgs: ['--enable-automation'], // works, but shows "not your default browser toolbar"
       args: [
+        '--no-sandbox',
         '--enable-usermedia-screen-capturing',
         '--allow-http-screen-capture',
         '--allow-file-access-from-files',
