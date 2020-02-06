@@ -40,6 +40,10 @@ class PuppeteerTestee {
     debugTestee('PuppeteerTestee.constructor', config);
     this.configuration = config.client.configuration;
     this.client = new Client(this.configuration);
+    this.inflightRequests = {};
+    this.inflightRequestsSettledCallback = null;
+    this.onRequest = this.onRequest.bind(this);
+    this.removeInflightRequest = this.removeInflightRequest.bind(this);
   }
 
   async selectElementWithMatcher(...args) {
@@ -316,6 +320,54 @@ class PuppeteerTestee {
     return params;
   }
 
+  async setupNetworkSynchronization() {
+    page.on('request', this.onRequest);
+    page.on('requestfinished', this.removeInflightRequest);
+    page.on('requestfailed', this.removeInflightRequest);
+  }
+
+  async teardownNetworkSynchronization() {
+    page.removeListener('request', this.onRequest);
+    page.removeListener('requestfinished', this.removeInflightRequest);
+    page.removeListener('requestfailed', this.removeInflightRequest);
+  }
+
+  async synchronizeNetwork() {
+    return new Promise(resolve => {
+      if (Object.keys(this.inflightRequests).length === 0) {
+        resolve();
+        return;
+      }
+      // We use debounce because some new requests may fire immediately after
+      // the last one outstanding resolves. We prefer to let the requests settle
+      // before considering the network "synchronized"
+      this.inflightRequestsSettledCallback = _.debounce(() => {
+        this.inflightRequestsSettledCallback = null;
+        this.synchronizeNetwork().then(resolve);
+      }, 200);
+    });
+  }
+
+  removeInflightRequest(request) {
+    // debugTestee('offRequest', request.uid);
+    delete this.inflightRequests[request.uid];
+    if (Object.keys(this.inflightRequests).length === 0) {
+      if (this.inflightRequestsSettledCallback) this.inflightRequestsSettledCallback();
+    }
+  }
+
+  onRequest(request) {
+    request.uid = Math.random();
+    const url = request.url();
+    // debugTestee('onRequest', request.uid, url, request.postData());
+    const isIgnored = urlBlacklist.some((candidate) => {
+      return url.match(new RegExp(candidate));
+    });
+    if (!isIgnored) {
+      this.inflightRequests[request.uid] = true;
+    }
+  };
+
   async connect() {
     // this.client.ws.on('error', (e) => {
     //   console.error(e);
@@ -343,8 +395,6 @@ class PuppeteerTestee {
 
     await this.client.ws.open();
     this.client.ws.ws.on('message', async (str) => {
-      let actionComplete = false;
-
       // https://github.com/wix/Detox/blob/ca620e760747ade9cb673c28262200b02e8e8a5d/docs/Troubleshooting.Synchronization.md#settimeout-and-setinterval
       async function setupDetoxTimeouts() {
         await page.evaluate(() => {
@@ -382,59 +432,19 @@ class PuppeteerTestee {
         // console.warn(e);
       }
 
-      /* Network synchronization */
-      const inflightRequests = {};
-      let _onRequest, _onRequestFailed, _onRequestFinished;
+      // Always teardown + setup in case we created a new page object since
+      // the last action
+      await this.teardownNetworkSynchronization();
+      await this.setupNetworkSynchronization();
 
-      function removeNetworkListeners() {
-        page.removeListener('request', _onRequest);
-        page.removeListener('requestfinished', _onRequestFinished);
-        page.removeListener('requestfailed', _onRequestFailed);
-      }
-
-      const networkSettledPromise = new Promise((resolve) => {
-        function addInflightRequest(request) {
-          inflightRequests[request.uid] = true;
-        }
-
-        function removeInflightRequest(request) {
-          delete inflightRequests[request.uid];
-          if (actionComplete && Object.keys(inflightRequests).length === 0) {
-            resolve();
-          }
-        }
-
-        _onRequest = (request) => {
-          request.uid = Math.random();
-          const url = request.url();
-          const isIgnored = urlBlacklist.some((candidate) => {
-            return url.match(new RegExp(candidate));
-          });
-          if (!isIgnored) {
-            addInflightRequest(request);
-          }
-        };
-        _onRequestFinished = (request) => {
-          removeInflightRequest(request);
-        };
-        _onRequestFailed = (request) => {
-          removeInflightRequest(request);
-        };
-        page.on('request', _onRequest);
-        page.on('requestfinished', _onRequestFinished);
-        page.on('requestfailed', _onRequestFailed);
-      });
-
-      /* end network synchronization */
-
-      const sendResponse = async (response) => {
+      const sendResponse = async (response, options = {}) => {
         debugTestee('sendResponse', response);
-        actionComplete = true;
-        const sendResponsePromise = enableSynchronization && Object.keys(inflightRequests).length > 0
-          ? networkSettledPromise
+        const performSynchronization = enableSynchronization && !options.skipSynchronization;
+        const sendResponsePromise = performSynchronization
+          ? this.synchronizeNetwork()
           : Promise.resolve();
 
-        const animationsSettledPromise = enableSynchronization ? new Promise(resolve => {
+        const animationsSettledPromise = performSynchronization ? new Promise(resolve => {
           const interval = setInterval(() => {
             Object.entries(animationTimeById).forEach(async ([id, duration]) => {
               let result = { currentTime: null };
@@ -456,10 +466,9 @@ class PuppeteerTestee {
         }) : Promise.resolve();
 
         return sendResponsePromise
-          .then(() => removeNetworkListeners())
           .then(() => animationsSettledPromise)
           .then(() => {
-            if (!enableSynchronization) return;
+            if (!performSynchronization) return;
             return page.waitFor(() => {
               return Object.keys(window._detoxTimeouts || {}).length === 0;
             });
@@ -476,7 +485,6 @@ class PuppeteerTestee {
           return;
         }
         if (action.type === 'loginSuccess') {
-          await removeNetworkListeners();
           return;
         } else if (action.type === 'deliverPayload') {
           if (action.params && action.params.url) {
@@ -485,9 +493,12 @@ class PuppeteerTestee {
           }
           await sendResponse({ type: 'deliverPayloadDone', messageId: action.messageId });
         } else if (action.type === 'currentStatus') {
-          await sendResponse({ type: 'currentStatusResult', params: { resources: [] } });
+          await sendResponse({ type: 'currentStatusResult', params: { resources: [] } }, { skipSynchronization: true });
         } else {
           try {
+            if (enableSynchronization) {
+              await this.synchronizeNetwork();
+            }
             const result = await this.invoke(action.params);
             if (result === false || result === null) throw new Error('invalid result');
             await sendResponse({ type: 'invokeResult', messageId: action.messageId });
