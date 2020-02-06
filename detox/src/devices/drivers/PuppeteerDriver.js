@@ -75,7 +75,8 @@ class PuppeteerTestee {
             }
           }
 
-          const element = elements[indexArg ? indexArg.args[0] : 0];
+          // do a reverse search to match iOS indexes
+          const element = elements[indexArg ? elements.length - 1 - indexArg.args[0] : 0];
           if (visibleArg && visibleArg.args[0].visible === false && !element) {
             return true;
           }
