@@ -46,6 +46,10 @@ class DetoxExportWrapper {
     }
   }
 
+  addDriver(name, driver) {
+    Detox.addDriver(name, driver);
+  }
+
   _definePassthroughMethod(name) {
     this[name] = (...args) => {
       return this[_detox][name](...args);

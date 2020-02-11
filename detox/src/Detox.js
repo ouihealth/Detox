@@ -180,4 +180,8 @@ class Detox {
 
 Detox.none = new MissingDetox();
 
+Detox.addDriver = function(name, driver) {
+  DEVICE_CLASSES[name] = driver;
+}
+
 module.exports = Detox;
